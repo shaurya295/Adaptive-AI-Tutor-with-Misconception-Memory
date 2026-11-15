@@ -72,3 +72,19 @@ Thumbs.db
 
 # ChromaDB persisted index (generated, rebuild with reset_index())
 backend/rag/.chromadb/
+
+# ---- Project additions (2026-11) ----
+# Node / frontend tooling
+node_modules/
+.vite/
+# Test and tooling caches
+.pytest_cache/
+.ruff_cache/
+test-results/
+playwright-report/
+# Runtime data
+backend/data/
+# The Python template rules above (lib/, dist/, build/) must not hide frontend source folders
+!frontend_src/**/lib/
+!frontend_src/**/dist/
+!frontend_src/**/build/
