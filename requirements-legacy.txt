@@ -1,0 +1,4 @@
+# Only needed for the old Streamlit UI (streamlit run app.py)
+-r requirements.txt
+streamlit
+pandas
