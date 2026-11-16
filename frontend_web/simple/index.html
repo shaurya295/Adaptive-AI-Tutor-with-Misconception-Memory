@@ -136,6 +136,12 @@
   .progress-dots span.current{ background:var(--gold); }
 
   .quiz-question{ font-size:1.02rem; font-weight:600; margin-bottom:14px; }
+  .chip-btn{ cursor:pointer; border:none; }
+  .option-list{ display:flex; flex-direction:column; gap:8px; }
+  .option{ display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:9px; padding:10px 13px; font-size:.88rem; cursor:pointer; }
+  .option.selected{ border-color:var(--gold); background:var(--gold-soft); }
+  .option .bullet{ width:16px; height:16px; border-radius:50%; border:2px solid var(--ink-muted); flex:0 0 auto; }
+  .option.selected .bullet{ border-color:var(--gold); background:var(--gold); }
 
   .session-topbar{ display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
 
@@ -260,14 +266,14 @@
     <div class="row">
       <div class="card" style="flex:1; cursor:pointer;" onclick="chooseDashboard('simple')" tabindex="0" role="button"
            onkeydown="if(event.key==='Enter')chooseDashboard('simple')">
-        <div class="card-title">📋 Simple dashboard</div>
+        <div class="card-title">📓 Simple dashboard</div>
         <p style="font-size:.86rem; margin:0 0 10px;">Calm, focused tutoring — chat with the tutor, see your hint ladder, take placement and post-tests.</p>
         <span class="chip chip-gold">Recommended for exam prep</span>
       </div>
       <div class="card" style="flex:1; cursor:pointer; border-color:var(--plum);" onclick="chooseDashboard('gamified')" tabindex="0" role="button"
            onkeydown="if(event.key==='Enter')chooseDashboard('gamified')">
         <div class="card-title" style="color:var(--plum);">🕹️ Gamified dashboard</div>
-        <p style="font-size:.86rem; margin:0 0 10px;">Pixel Tutor — avatars, XP, quests, and your learning curve as a game progress chart.</p>
+        <p style="font-size:.86rem; margin:0 0 10px;">Pixel Tutor — avatars, XP, quests, a leaderboard, and your learning curve as a game progress chart.</p>
         <span class="chip chip-plum">Same tutor, more fun</span>
       </div>
     </div>
@@ -377,7 +383,7 @@
       <div class="screen-header">
         <div class="eyebrow">Teacher · Screen 2 of 5</div>
         <h1 class="screen-title">Eval metrics</h1>
-        <p class="screen-sub">The panel's six named judging metrics, computed live from logged turns — pick a student on the Lookup screen first.</p>
+        <p class="screen-sub">The panel's six named judging metrics, computed live from this server session's logged turns — pick a student on the Lookup screen first.</p>
       </div>
       <div id="evalMetricsArea"></div>
     </section>
@@ -391,7 +397,7 @@
       </div>
 
       <div class="roster-toolbar">
-        <input id="graphConcept" class="text-input" type="text" placeholder="Concept name, e.g. Fractions" style="max-width:320px;">
+        <input id="graphConcept" class="text-input" type="text" placeholder="Concept name, e.g. Fraction Addition" style="max-width:320px;">
         <button class="btn btn-primary" onclick="loadMisconceptionGraph()">Load graph</button>
       </div>
 
@@ -485,7 +491,7 @@
     role: null,
     currentConcept: null,
     lookedUpStudentId: null,
-    quiz: null,       // { variant, questions, index, answers }
+    quiz: null,       // { variant, questions, index, selected }
     topics: ['Fractions', 'Probability', 'Algebra', 'Geometry', 'Decimals and Percentages'],
   };
 
@@ -596,7 +602,7 @@
   function renderDueBanner(due){
     var el = document.getElementById('dueReviewBanner');
     if (!due || !due.length){ el.innerHTML = ''; return; }
-    el.innerHTML = '<div class="banner-review">📅 <strong>' + esc(due.join(', ')) + '</strong> ' +
+    el.innerHTML = '<div class="banner-review">🔔 <strong>' + esc(due.join(', ')) + '</strong> ' +
       (due.length === 1 ? 'is' : 'are') + ' due for review.</div>';
   }
 
@@ -632,7 +638,7 @@
       el.innerHTML =
         '<div class="card">' +
         '<div class="card-title">Quick placement check</div>' +
-        '<p style="font-size:.86rem; color:var(--ink-muted); margin:0 0 12px;">A few free-response questions, about a minute. Helps the tutor start at the right level instead of a flat default.</p>' +
+        '<p style="font-size:.86rem; color:var(--ink-muted); margin:0 0 12px;">A few questions, about a minute. Helps the tutor start at the right level instead of a flat default.</p>' +
         '<div class="row" style="gap:10px;">' +
         '<button class="btn btn-primary" onclick="startQuiz(\'pre\')">Start placement check</button>' +
         '<button class="btn btn-ghost" onclick="skipQuiz(\'pre\')">Skip</button>' +
@@ -648,31 +654,26 @@
       var cls = i < state.quiz.index ? 'done' : (i === state.quiz.index ? 'current' : '');
       return '<span class="' + cls + '"></span>';
     }).join('');
+    var options = q.choices.map(function(choice, i){
+      var sel = state.quiz.selected[state.quiz.index] === i ? ' selected' : '';
+      return '<div class="option' + sel + '" onclick="pickQuizOption(' + i + ')"><span class="bullet"></span>' + esc(choice) + '</div>';
+    }).join('');
     var isLast = state.quiz.index === state.quiz.questions.length - 1;
-    var answered = (state.quiz.answers[state.quiz.index] || '').trim().length > 0;
+    var picked = state.quiz.selected[state.quiz.index] !== null && state.quiz.selected[state.quiz.index] !== undefined;
     return '<div class="card">' +
       '<div class="card-title">' + (state.quiz.variant === 'pre' ? 'Placement check' : 'Post-test') + ' · question ' + (state.quiz.index + 1) + ' of ' + state.quiz.questions.length + '</div>' +
       '<div class="progress-dots">' + dots + '</div>' +
-      '<div class="quiz-question">' + esc(q.question_text) + '</div>' +
-      '<textarea class="text-input" id="quizAnswerInput" rows="3" placeholder="Type your answer…" oninput="onQuizAnswerInput(this.value)">' + esc(state.quiz.answers[state.quiz.index] || '') + '</textarea>' +
-      '<div class="cta-row"><button class="btn btn-primary" id="quizNextBtn" ' + (answered ? '' : 'disabled') + ' onclick="nextQuizStep()">' + (isLast ? 'Finish' : 'Next →') + '</button></div>' +
+      '<div class="quiz-question">' + esc(q.question) + '</div>' +
+      '<div class="option-list">' + options + '</div>' +
+      '<div class="cta-row"><button class="btn btn-primary" ' + (picked ? '' : 'disabled') + ' onclick="nextQuizStep()">' + (isLast ? 'Finish' : 'Next →') + '</button></div>' +
       '</div>';
-  }
-
-  function onQuizAnswerInput(value){
-    state.quiz.answers[state.quiz.index] = value;
-    var btn = document.getElementById('quizNextBtn');
-    if (btn) btn.disabled = value.trim().length === 0;
   }
 
   function startQuiz(variant){
     api('/api/quiz/start', {method: 'POST', body: {student_id: state.studentId, concept: state.currentConcept, variant: variant}})
       .then(function(res){
-        if (!res.questions.length){
-          alert("Couldn't generate quiz questions right now (is Ollama running?).");
-          return;
-        }
-        state.quiz = {variant: variant, questions: res.questions, index: 0, answers: res.questions.map(function(){ return ''; })};
+        if (!res.questions.length){ alert('No quiz questions are available for this topic yet.'); return; }
+      state.quiz = {variant: variant, questions: res.questions, index: 0, selected: res.questions.map(function(){ return null; })};
         if (variant === 'pre') renderPlacementArea(); else renderRevealOrPost();
       })
       .catch(function(err){ alert(err.message); });
@@ -685,6 +686,10 @@
         renderPlacementArea();
       });
   }
+  function pickQuizOption(i){
+    state.quiz.selected[state.quiz.index] = i;
+    if (state.quiz.variant === 'pre') renderPlacementArea(); else renderRevealOrPost();
+  }
   function nextQuizStep(){
     var isLast = state.quiz.index === state.quiz.questions.length - 1;
     if (!isLast){
@@ -693,11 +698,8 @@
       return;
     }
     var variant = state.quiz.variant;
-    var answers = state.quiz.questions.map(function(q, i){
-      return {question_id: q.question_id, question_text: q.question_text, answer_text: state.quiz.answers[i]};
-    });
     api('/api/quiz/submit', {method: 'POST', body: {
-      student_id: state.studentId, concept: state.currentConcept, variant: variant, answers: answers
+      student_id: state.studentId, concept: state.currentConcept, variant: variant, selected_indices: state.quiz.selected
     }}).then(function(res){
       if (!lastState.pre_test_scores) lastState.pre_test_scores = {};
       if (!lastState.post_test_scores) lastState.post_test_scores = {};
@@ -793,7 +795,7 @@
     var pre = lastState && lastState.pre_test_scores ? lastState.pre_test_scores[state.currentConcept] : undefined;
     var post = lastState && lastState.post_test_scores ? lastState.post_test_scores[state.currentConcept] : undefined;
     if (pre !== undefined && pre !== null && !post){
-      el.innerHTML = '<button class="btn btn-ghost" onclick="startQuiz(\'post\')">🏁 End session — take the post-test</button>';
+      el.innerHTML = '<button class="btn btn-ghost" onclick="startQuiz(\'post\')">📝 End session — take the post-test</button>';
     } else {
       el.innerHTML = '';
     }
@@ -813,11 +815,21 @@
 
     var mastery = (lastState.profile && lastState.profile.concept_mastery) || {};
     var entry = mastery[state.currentConcept] || {};
+    var nextReviewHtml = '';
+    if (entry.next_review){
+      var d = new Date(entry.next_review + 'T00:00:00');
+      var label = d.toLocaleDateString(undefined, {month: 'short', day: 'numeric'}).toUpperCase().replace(' ', '<br/>');
+      nextReviewHtml = '<div class="card" style="flex:1;"><div class="card-title">Your next review</div>' +
+        '<div class="next-review-card"><div class="date-badge">' + label + '</div>' +
+        '<div><div style="font-weight:600; font-size:.88rem;">' + esc(state.currentConcept) + '</div>' +
+        '<div style="font-size:.78rem; color:var(--ink-muted);">Scheduled based on current mastery (' + Math.round((entry.mastery||0)*100) + '%).</div></div></div></div>';
+    }
 
     if (!pre){
       el.innerHTML = '<div class="card"><div class="card-title">' + esc(state.currentConcept) + ' — post-test</div>' +
         '<p style="font-size:1.1rem; font-weight:700;">' + post[0] + '/' + post[1] + ' correct</p>' +
-        '<p style="color:var(--ink-muted); font-size:.85rem;">No pre-test on record, so there\'s no gain to show — just the post-test score.</p></div>';
+        '<p style="color:var(--ink-muted); font-size:.85rem;">No pre-test on record, so there\'s no gain to show — just the post-test score.</p></div>' +
+        '<div class="row" style="margin-top:14px;">' + nextReviewHtml + '</div>';
       return;
     }
 
@@ -830,7 +842,7 @@
       '<span class="reveal-arrow">→</span><span class="reveal-num after">' + postPct + '%</span></div>' +
       '<div class="bar-track"><div class="bar-fill" style="width:' + postPct + '%"></div></div>' +
       '<p style="color:var(--ink-muted); font-size:.85rem;">' + pre[0] + '/' + pre[1] + ' correct before → ' + post[0] + '/' + post[1] + ' correct after.</p>' +
-      '</div>';
+      '</div><div class="row" style="margin-top:14px;">' + nextReviewHtml + '</div>';
   }
 
   // ===================================================================
@@ -855,7 +867,7 @@
     (res.due_for_review || []).forEach(function(c){ dueSet[c] = true; });
 
     var due = res.due_for_review || [];
-    var dueHtml = due.length ? '<div class="banner-review" style="margin-bottom:14px;">📅 <strong>' + esc(due.join(', ')) + '</strong> due for review.</div>' : '';
+    var dueHtml = due.length ? '<div class="banner-review" style="margin-bottom:14px;">🔔 <strong>' + esc(due.join(', ')) + '</strong> due for review.</div>' : '';
 
     if (!concepts.length){
       el.innerHTML = dueHtml + '<p class="empty-state">No concept history yet for ' + esc(state.lookedUpStudentId) + '.</p>';

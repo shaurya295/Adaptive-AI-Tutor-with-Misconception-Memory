@@ -21,16 +21,15 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from backend.agents.orchestrator import tutor_app
-from backend.agents.quiz_agent import grade_quiz_answer
 from backend.agents.tutor_planner import run_explain
 from backend.api.auth import infer_role, is_valid_email
 from backend.api.sessions import get_session
+from backend.content import VARIANTS, get_quiz, grade_quiz
 from backend.evals.metrics import compute_all_metrics
 from backend.memory.conversation_store import get_recent_messages, save_message
 from backend.memory.eval_store import get_interactions, set_escalation_warranted
 from backend.memory.graph_viz import build_prerequisite_graph_json
 from backend.memory.quiz_store import (
-    get_or_generate_questions,
     get_round_summary,
     next_round_number,
     record_attempt,
@@ -70,17 +69,11 @@ class QuizSkipBody(BaseModel):
     variant: str
 
 
-class QuizAnswer(BaseModel):
-    question_id: int
-    question_text: str
-    answer_text: str
-
-
 class QuizSubmitBody(BaseModel):
     student_id: str
     concept: str
     variant: str
-    answers: list[QuizAnswer]
+    selected_indices: list[Optional[int]]
 
 
 class EscalationReviewBody(BaseModel):
@@ -107,6 +100,21 @@ def _hint_ladder_payload(final_state: dict[str, Any]) -> dict[str, Any]:
         "current_index": level - 1,
         "labels": ["Small clue", "Stronger hint", "Worked example"],
     }
+
+
+def _check_variant(variant: str) -> None:
+    if variant not in VARIANTS:
+        raise HTTPException(status_code=400, detail="variant must be 'pre' or 'post'.")
+
+
+def _with_schedule(profile: dict[str, Any], student_id: str) -> dict[str, Any]:
+    """Adds next_review / last_practiced (YYYY-MM-DD) to each mastery entry, as the UI expects."""
+    for row in get_schedule(student_id):
+        entry = (profile.get("concept_mastery") or {}).get(row["concept"])
+        if entry is not None:
+            entry["next_review"] = str(row["next_review_at"])[:10]
+            entry["last_practiced"] = str(row["last_reviewed_at"])[:10]
+    return profile
 
 
 def _round_scores(student_id: str, concept: str, round_number: Optional[int]) -> tuple[Optional[list[int]], Optional[list[int]]]:
@@ -219,7 +227,7 @@ def get_state(student_id: str, concept: Optional[str] = None) -> dict[str, Any]:
 
     return {
         "messages": messages,
-        "profile": profile,
+        "profile": _with_schedule(profile, student_id),
         "active_question": session.active_question,
         "pre_test_scores": pre_test_scores,
         "post_test_scores": post_test_scores,
@@ -286,7 +294,7 @@ def chat(body: ChatBody) -> dict[str, Any]:
         "reply": reply,
         "active_question": session.active_question,
         "hint_ladder": hint_ladder,
-        "profile": profile,
+        "profile": _with_schedule(profile, body.student_id),
         "escalated": escalated,
     }
 
@@ -297,13 +305,14 @@ def chat(body: ChatBody) -> dict[str, Any]:
 
 @app.post("/api/quiz/start")
 def quiz_start(body: QuizStartBody) -> dict[str, Any]:
+    _check_variant(body.variant)
     session = get_session(body.student_id)
     if body.concept not in session.quiz_round:
         session.quiz_round[body.concept] = next_round_number(body.student_id, body.concept)
-    questions = get_or_generate_questions(body.concept, n=5)
     return {
         "questions": [
-            {"question_id": q["id"], "question_text": q["question_text"]} for q in questions
+            {"question_id": q["id"], "question": q["question"], "choices": q["choices"]}
+            for q in get_quiz(body.concept, body.variant)
         ]
     }
 
@@ -318,45 +327,34 @@ def quiz_skip(body: QuizSkipBody) -> dict[str, Any]:
 
 @app.post("/api/quiz/submit")
 def quiz_submit(body: QuizSubmitBody) -> dict[str, Any]:
+    _check_variant(body.variant)
     session = get_session(body.student_id)
     round_number = session.quiz_round.get(body.concept)
     if round_number is None:
         round_number = next_round_number(body.student_id, body.concept)
         session.quiz_round[body.concept] = round_number
 
-    phase = "pre" if body.variant == "pre" else "post"
-    correct_count = 0
-    for answer in body.answers:
-        is_correct = grade_quiz_answer(
-            question_text=answer.question_text,
-            current_concept=body.concept,
-            student_answer=answer.answer_text,
-        )
+    results = grade_quiz(body.concept, body.variant, body.selected_indices)
+    if not results:
+        raise HTTPException(status_code=404, detail="No quiz questions are available for this topic.")
+    for r in results:
         record_attempt(
-            body.student_id,
-            body.concept,
-            round_number,
-            phase,
-            answer.question_id,
-            answer.answer_text,
-            is_correct,
+            body.student_id, body.concept, round_number, body.variant, r["question_id"], r["picked_text"], r["correct"]
         )
-        if is_correct:
-            correct_count += 1
-
-    total = len(body.answers)
-    score = correct_count / total if total else 0.0
+    correct_count = sum(1 for r in results if r["correct"])
+    total = len(results)
 
     if body.variant == "pre":
+        # The placement score seeds mastery only for a topic the student has not
+        # practised yet, so retaking it never wipes progress earned in tutoring.
         profile = load_student_profile(body.student_id)
-        profile.setdefault("concept_mastery", {})
-        profile["concept_mastery"][body.concept] = {"mastery": score, "consecutive_misses": 0}
-        save_student_profile(body.student_id, profile)
-        schedule_next_review(body.student_id, body.concept, score)
+        mastery = profile.setdefault("concept_mastery", {})
+        if body.concept not in mastery:
+            score = correct_count / total
+            mastery[body.concept] = {"mastery": score, "consecutive_misses": 0}
+            save_student_profile(body.student_id, profile)
+            schedule_next_review(body.student_id, body.concept, score)
     else:
-        # Post-test is a measurement, not a mastery seed — mirrors the
-        # existing Streamlit app, which leaves mastery updates to chat
-        # turns (run_memory_update) rather than the quiz view itself.
         session.quiz_round.pop(body.concept, None)
 
     return {"correct": correct_count, "total": total}
@@ -369,7 +367,7 @@ def quiz_submit(body: QuizSubmitBody) -> dict[str, Any]:
 @app.get("/api/profile")
 def get_profile(student_id: str) -> dict[str, Any]:
     return {
-        "profile": load_student_profile(student_id),
+        "profile": _with_schedule(load_student_profile(student_id), student_id),
         "due_for_review": [row["concept"] for row in get_due_reviews(student_id)],
     }
 
