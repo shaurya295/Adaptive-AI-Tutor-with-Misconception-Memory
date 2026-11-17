@@ -12,6 +12,7 @@ Run: uvicorn backend.api.server:app --reload --port 8000
 
 from __future__ import annotations
 
+import logging
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -24,7 +25,8 @@ from backend.agents.orchestrator import tutor_app
 from backend.agents.tutor_planner import run_explain
 from backend.api.auth import infer_role, is_valid_email
 from backend.api.sessions import get_session
-from backend.content import VARIANTS, get_quiz, grade_quiz
+from backend.content import VARIANTS, get_quiz, grade_quiz, next_practice_question
+from backend.llm import LLMError
 from backend.evals.metrics import compute_all_metrics
 from backend.memory.conversation_store import get_recent_messages, save_message
 from backend.memory.eval_store import get_interactions, set_escalation_warranted
@@ -36,9 +38,12 @@ from backend.memory.quiz_store import (
 )
 from backend.memory.spaced_repetition import get_due_reviews, get_schedule, schedule_next_review
 from backend.memory.student_graph_store import load_student_profile, save_student_profile
-from frontend.theme import strategy_to_ladder_level
 
 app = FastAPI(title="Adaptive AI Tutor API")
+logger = logging.getLogger("api")
+
+# How far up the hint ladder each teaching strategy sits (0 = no ladder shown).
+_LADDER_LEVELS = {"retry_prompt": 1, "small_clue": 1, "stronger_hint": 2, "worked_example": 3, "prerequisite_review": 3}
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -92,7 +97,7 @@ def _hint_ladder_payload(final_state: dict[str, Any]) -> dict[str, Any]:
     strategy = (final_state.get("tutor_plan_result") or {}).get("applied_strategy") or final_state.get(
         "recommended_strategy"
     )
-    level = strategy_to_ladder_level(strategy)
+    level = _LADDER_LEVELS.get(strategy or "", 0)
     if level == 0:
         return {"kind": "none"}
     return {
@@ -228,7 +233,7 @@ def get_state(student_id: str, concept: Optional[str] = None) -> dict[str, Any]:
     return {
         "messages": messages,
         "profile": _with_schedule(profile, student_id),
-        "active_question": session.active_question,
+        "active_question": session.active_question(concept),
         "pre_test_scores": pre_test_scores,
         "post_test_scores": post_test_scores,
         "due_for_review": due_for_review,
@@ -236,63 +241,79 @@ def get_state(student_id: str, concept: Optional[str] = None) -> dict[str, Any]:
     }
 
 
+def _start_practice(session, concept: str) -> Optional[str]:
+    """Makes the next practice question for this topic the problem in progress; returns its text."""
+    asked = session.asked.setdefault(concept, [])
+    q = next_practice_question(concept, asked)
+    if q is None:
+        session.active.pop(concept, None)
+        return None
+    asked.append(q["id"])
+    session.active[concept] = {"question": q["question"], "answer": q["answer"], "exact": bool(q.get("exact")), "id": q["id"]}
+    return q["question"]
+
+
 @app.post("/api/chat")
 def chat(body: ChatBody) -> dict[str, Any]:
+    message = body.message.strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Type a message first.")
     session = get_session(body.student_id)
     response_time_seconds = (
         time.time() - session.last_tutor_message_at if session.last_tutor_message_at is not None else None
     )
-
-    save_message(body.student_id, "user", body.message, concept=body.concept)
     profile = load_student_profile(body.student_id)
-
+    active = session.active.get(body.concept)
     escalated = False
-    if session.active_question is None:
-        result = run_explain(
-            current_concept=body.concept,
-            student_question=body.message,
-            student_memory_profile=profile,
-        )
-        reply = result["hint_text"]
-        if result.get("practice_question"):
-            reply += f"\n\n**Try this:** {result['practice_question']}"
-            session.active_question = result["practice_question"]
-        hint_ladder: dict[str, Any] = {"kind": "none"}
-    else:
-        initial_state = {
-            "student_id": body.student_id,
-            "current_question": session.active_question,
-            "current_concept": body.concept,
-            "student_response": body.message,
-            "student_memory_profile": profile,
-            "response_time_seconds": response_time_seconds,
-        }
-        final_state = tutor_app.invoke(initial_state)
+    hint_ladder: dict[str, Any] = {"kind": "none"}
 
-        reply = (
-            final_state.get("hint_text")
-            or final_state.get("teacher_summary")
-            or "I'm not sure how to respond to that — could you rephrase?"
-        )
-        if final_state.get("practice_question"):
-            reply += f"\n\n**Try this:** {final_state['practice_question']}"
-            session.active_question = final_state["practice_question"]
-        # else: keep active_question as-is so the next reply is graded
-        # against the same problem and the hint ladder can escalate.
+    try:
+        if active is None:
+            result = run_explain(current_concept=body.concept, student_question=message, student_memory_profile=profile)
+            reply = result["hint_text"]
+            question = _start_practice(session, body.concept)
+            if question:
+                reply += f"\n\n**Try this:** {question}"
+        else:
+            final_state = tutor_app.invoke(
+                {
+                    "student_id": body.student_id,
+                    "current_question": active["question"],
+                    "current_concept": body.concept,
+                    "student_response": message,
+                    "student_memory_profile": profile,
+                    "response_time_seconds": response_time_seconds,
+                    "reference_answer": active.get("answer"),
+                    "exact_form": bool(active.get("exact")),
+                }
+            )
+            reply = final_state.get("hint_text") or "I'm not sure how to respond to that. Could you rephrase?"
+            profile = final_state.get("student_memory_profile") or profile
+            escalated = "escalation_result" in final_state
+            hint_ladder = _hint_ladder_payload(final_state)
+            if escalated:
+                session.active.pop(body.concept, None)      # the teacher takes it from here
+            elif "diagnostic_result" not in final_state:    # correct: move on to a new problem
+                question = _start_practice(session, body.concept)
+                if question:
+                    reply += f"\n\n**Try this:** {question}"
+            # otherwise the same problem stays open, so the hint ladder can climb
+    except LLMError as exc:
+        # Nothing was graded or recorded, so an outage never counts against the student.
+        logger.warning("Model unavailable during chat: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="The tutor's AI model isn't responding right now. Your answer was not marked; please try again in a moment.",
+        ) from exc
 
-        updated_profile = final_state.get("student_memory_profile")
-        if updated_profile:
-            profile = updated_profile
-        escalated = "escalation_result" in final_state
-        hint_ladder = _hint_ladder_payload(final_state)
-
+    save_message(body.student_id, "user", message, concept=body.concept)
     save_message(body.student_id, "assistant", reply, concept=body.concept)
     session.last_tutor_message_at = time.time()
     session.last_hint_ladder = hint_ladder
 
     return {
         "reply": reply,
-        "active_question": session.active_question,
+        "active_question": session.active_question(body.concept),
         "hint_ladder": hint_ladder,
         "profile": _with_schedule(profile, body.student_id),
         "escalated": escalated,

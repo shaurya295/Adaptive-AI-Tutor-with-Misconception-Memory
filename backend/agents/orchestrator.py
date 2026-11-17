@@ -104,6 +104,9 @@ class TutorState(TypedDict, total=False):
     student_response: str           # Student's latest answer text
     student_memory_profile: dict    # Mastery levels, weak prerequisites, history
     response_time_seconds: Optional[float]  # Wall-clock time app.py measured for this reply
+    reference_answer: Optional[str]  # Answer key of the current question, when it came from the bank
+    exact_form: bool                 # The answer must be in the key's form (e.g. lowest terms)
+    assessment: dict                 # Evaluator's verdict + diagnosis, reused by the Diagnostic Agent
 
     # --- Written by evaluator_node (runs first) ---
     evaluator_result: dict          # Full EvaluatorResult as dict

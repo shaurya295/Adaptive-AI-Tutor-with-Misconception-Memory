@@ -43,6 +43,7 @@ logging.basicConfig(level=logging.INFO)
 
 DEFAULT_MASTERY = 0.3
 MASTERY_INCREMENT = 0.15
+MASTERY_DECREMENT = 0.05   # a miss lowers mastery a little; it never drops below 0
 MAX_RECENT_ATTEMPTS = 10
 
 
@@ -85,11 +86,19 @@ def run_memory_update(state: dict) -> dict:
     diagnostic_result = state.get("diagnostic_result") or {}
 
     was_correct = evaluator_result.get("answer_quality") == "correct"
+    escalated_now = "escalation_result" in state
     if state.get("mastery_signal"):
         concept_entry["mastery"] = min(1.0, concept_entry["mastery"] + MASTERY_INCREMENT)
         concept_entry["consecutive_misses"] = 0
+    elif was_correct:
+        pass    # correct but unsure (or flagged): neither a miss nor proof of mastery
     else:
+        concept_entry["mastery"] = max(0.0, concept_entry["mastery"] - MASTERY_DECREMENT)
         concept_entry["consecutive_misses"] += 1
+    concept_entry["mastery"] = round(concept_entry["mastery"], 4)
+    if escalated_now:
+        # The teacher has been called; start the count again so one hand-off does not repeat every turn.
+        concept_entry["consecutive_misses"] = 0
 
     missing_prereq = diagnostic_result.get("missing_prerequisite")
     if missing_prereq and missing_prereq not in profile["weak_prerequisites"]:

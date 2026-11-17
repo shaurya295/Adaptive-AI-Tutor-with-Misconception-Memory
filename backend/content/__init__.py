@@ -48,3 +48,24 @@ def grade_quiz(concept: str, variant: str, selected_indices: list[int | None]) -
             }
         )
     return results
+
+
+# --------------------------------------------------------------------------- #
+# Practice questions for the tutoring chat (separate from the quiz sets, so
+# tutoring never rehearses the exact post-test questions)
+# --------------------------------------------------------------------------- #
+
+@lru_cache(maxsize=1)
+def _practice() -> dict[str, list[dict[str, Any]]]:
+    return json.loads(Path(__file__).with_name("practice.json").read_text(encoding="utf-8"))
+
+
+def next_practice_question(concept: str, asked_ids: list[int]) -> dict[str, Any] | None:
+    """The first practice question for this topic not asked yet; starts over once all were asked."""
+    bank = _practice().get(concept) or []
+    if not bank:
+        return None
+    for q in bank:
+        if q["id"] not in asked_ids:
+            return q
+    return bank[len(asked_ids) % len(bank)]
