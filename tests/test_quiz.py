@@ -2,6 +2,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.conftest import TEACHER, sign_in
+
 from backend import content
 
 
@@ -41,6 +43,7 @@ def client():
 
 
 def test_quiz_round_trip(client):
+    sign_in(client, "quiz-tester@example.com")
     who = {"student_id": "quiz-tester@example.com", "concept": "Fractions"}
     start = client.post("/api/quiz/start", json={**who, "variant": "pre"}).json()
     assert len(start["questions"]) == 3
@@ -55,6 +58,7 @@ def test_quiz_round_trip(client):
 
 
 def test_quiz_rejects_bad_input(client):
+    sign_in(client, "quiz-tester@example.com")
     who = {"student_id": "quiz-tester@example.com", "concept": "Fractions"}
     assert client.post("/api/quiz/start", json={**who, "variant": "final"}).status_code == 400
     unknown = {"student_id": "quiz-tester@example.com", "concept": "Knitting"}

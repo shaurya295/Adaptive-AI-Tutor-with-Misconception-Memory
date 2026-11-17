@@ -553,6 +553,7 @@
     }
   }
   function signOut(){
+    fetch('/api/logout', {method: 'POST'}).catch(function(){});
     state.studentId = null; state.role = null; state.currentConcept = null;
     localStorage.removeItem('mentora_student_id');
     document.getElementById('appShell').style.display = 'none';
@@ -674,7 +675,8 @@
       .then(function(res){
         if (!res.questions.length){ alert('No quiz questions are available for this topic yet.'); return; }
       state.quiz = {variant: variant, questions: res.questions, index: 0, selected: res.questions.map(function(){ return null; })};
-        if (variant === 'pre') renderPlacementArea(); else renderRevealOrPost();
+        if (variant === 'pre') renderPlacementArea();
+        else { setScreen('s3'); renderRevealOrPost(); }   // deviation D1: show the post-test where it is drawn
       })
       .catch(function(err){ alert(err.message); });
   }

@@ -2,6 +2,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.conftest import TEACHER, sign_in
+
 from backend import content
 from backend.memory import misconception_graph as graph
 from backend.memory.student_graph_store import load_student_profile, save_student_profile
@@ -47,6 +49,7 @@ def client():
 
 
 def test_placement_score_is_remembered(client):
+    sign_in(client, "placement@example.com")
     who = {"student_id": "placement@example.com", "concept": "Algebra"}
     key = [q["answer"] for q in content.get_quiz("Algebra", "pre")]
     client.post("/api/quiz/start", json={**who, "variant": "pre"})
@@ -61,6 +64,7 @@ def test_placement_score_is_remembered(client):
 
 
 def test_graph_endpoint_shows_prerequisites_with_mastery(client):
+    sign_in(client, "graph@example.com")
     save_student_profile("graph@example.com", {"concept_mastery": {"Fractions": {"mastery": 0.45, "consecutive_misses": 0}, "Common Denominators": {"mastery": 0.28, "consecutive_misses": 1}}})
     data = client.get("/api/misconception-graph", params={"concept": "Fractions", "student_id": "graph@example.com"}).json()
     assert data["neo4j_available"] is True

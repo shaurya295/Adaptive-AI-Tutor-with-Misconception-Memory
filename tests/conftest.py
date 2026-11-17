@@ -8,3 +8,13 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
 os.environ["NEO4J_URI"] = "bolt://127.0.0.1:1"
 # No real model in tests: the LLM seam answers with canned text.
 os.environ["TUTOR_LLM"] = "fake"
+
+
+def sign_in(client, email):
+    """Signs the test client in (the session cookie replaces any earlier one)."""
+    r = client.post("/api/login", json={"email": email})
+    assert r.status_code == 200, r.text
+    return client
+
+
+TEACHER = "teacher@school.edu"

@@ -2,6 +2,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.conftest import TEACHER, sign_in
+
 from backend import llm
 from backend.agents.diagnostic_agent import ErrorType, choose_strategy
 from backend.agents.tutor_planner import leaks_answer, plan_hint
@@ -60,6 +62,7 @@ def client():
 
 
 def _chat(client, sid, message, concept="Fractions"):
+    sign_in(client, sid)
     return client.post("/api/chat", json={"student_id": sid, "concept": concept, "message": message})
 
 
@@ -80,7 +83,7 @@ def test_full_session(client):
     fifth = _chat(client, sid, "2/6").json()                                              # fifth miss: teacher is called
     assert fifth["escalated"] and fifth["hint_ladder"]["kind"] == "note" and fifth["active_question"] is None
     assert fifth["profile"]["concept_mastery"]["Fractions"]["consecutive_misses"] == 0   # not sticky
-    feed = client.get("/api/escalations", params={"student_id": sid}).json()["escalations"]
+    feed = sign_in(client, TEACHER).get("/api/escalations", params={"student_id": sid}).json()["escalations"]
     assert len(feed) == 1 and feed[0]["trigger_type"] == "Repeated failure" and feed[0]["misses"] == 4
 
     again = _chat(client, sid, "Can you explain once more?").json()
@@ -119,6 +122,6 @@ def test_model_outage_is_not_marked_against_the_student(client, monkeypatch):
     monkeypatch.setattr(llm, "_call", down)
     r = _chat(client, sid, "I think it is maybe 2/6?")
     assert r.status_code == 503 and "not marked" in r.json()["detail"]
-    profile = client.get("/api/profile", params={"student_id": sid}).json()["profile"]
+    profile = client.get("/api/profile").json()["profile"]                 # no id needed: it is your own
     assert "Fractions" not in profile["concept_mastery"] and profile["recent_attempts"] == []
     assert _chat(client, sid, "   ").status_code == 400

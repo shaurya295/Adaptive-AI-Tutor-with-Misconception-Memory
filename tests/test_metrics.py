@@ -2,6 +2,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.conftest import TEACHER, sign_in
+
 from backend.evals import metrics as m
 
 
@@ -60,6 +62,7 @@ def client():
 
 
 def _chat(client, sid, message):
+    sign_in(client, sid)
     return client.post("/api/chat", json={"student_id": sid, "concept": "Fractions", "message": message}).json()
 
 
@@ -70,6 +73,7 @@ def test_live_turns_feed_the_metrics_and_the_escalation_review(client):
         _chat(client, sid, "2/6")                                       # four hints, then the teacher is called
     _chat(client, sid, "Teach me again")
     _chat(client, sid, "5/6")                                           # correct (key for 2/3 + 1/6)
+    sign_in(client, TEACHER)
 
     shown = {x["label"]: x for x in client.get("/api/eval-metrics", params={"student_id": sid}).json()["metrics"]}
     assert shown["Adaptation quality"]["display"] == "100%"            # 0 -> 1 -> 2 -> 2 never dropped
@@ -87,4 +91,5 @@ def test_live_turns_feed_the_metrics_and_the_escalation_review(client):
 
 
 def test_review_only_applies_to_escalations(client):
+    sign_in(client, TEACHER)
     assert client.post("/api/escalations/review", json={"student_id": "x", "id": 999999, "warranted": True}).status_code == 404

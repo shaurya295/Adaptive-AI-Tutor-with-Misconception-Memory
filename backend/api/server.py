@@ -18,13 +18,13 @@ from datetime import timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from backend.agents.orchestrator import tutor_app
 from backend.agents.tutor_planner import run_explain
-from backend.api.auth import infer_role, is_valid_email
+from backend.api.auth import Caller, current_caller, end_session, infer_role, is_valid_email, own_account, readable_by, require_teacher, start_session
 from backend.api.sessions import get_session
 from backend.content import VARIANTS, get_quiz, grade_quiz, next_practice_question
 from backend.llm import LLMError
@@ -58,32 +58,32 @@ class LoginBody(BaseModel):
 
 
 class ChatBody(BaseModel):
-    student_id: str
+    student_id: Optional[str] = None
     concept: str
     message: str
 
 
 class QuizStartBody(BaseModel):
-    student_id: str
+    student_id: Optional[str] = None
     concept: str
     variant: str  # "pre" | "post"
 
 
 class QuizSkipBody(BaseModel):
-    student_id: str
+    student_id: Optional[str] = None
     concept: str
     variant: str
 
 
 class QuizSubmitBody(BaseModel):
-    student_id: str
+    student_id: Optional[str] = None
     concept: str
     variant: str
     selected_indices: list[Optional[int]]
 
 
 class EscalationReviewBody(BaseModel):
-    student_id: str
+    student_id: Optional[str] = None
     id: int
     warranted: bool
 
@@ -201,11 +201,19 @@ def _escalation_row(row: dict[str, Any]) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 
 @app.post("/api/login")
-def login(body: LoginBody) -> dict[str, Any]:
+def login(body: LoginBody, response: Response) -> dict[str, Any]:
     email = body.email.strip().lower()
     if not is_valid_email(email):
         raise HTTPException(status_code=400, detail="Enter a valid email address.")
-    return {"student_id": email, "role": infer_role(email)}
+    role = infer_role(email)
+    start_session(response, email, role)
+    return {"student_id": email, "role": role}
+
+
+@app.post("/api/logout")
+def logout(request: Request, response: Response) -> dict[str, Any]:
+    end_session(request, response)
+    return {"ok": True}
 
 
 # --------------------------------------------------------------------------- #
@@ -213,7 +221,8 @@ def login(body: LoginBody) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 
 @app.get("/api/state")
-def get_state(student_id: str, concept: Optional[str] = None) -> dict[str, Any]:
+def get_state(student_id: Optional[str] = None, concept: Optional[str] = None, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    student_id = readable_by(caller, student_id)
     session = get_session(student_id)
     history = get_recent_messages(student_id)
     messages = (
@@ -258,7 +267,8 @@ def _start_practice(session, concept: str) -> Optional[str]:
 
 
 @app.post("/api/chat")
-def chat(body: ChatBody) -> dict[str, Any]:
+def chat(body: ChatBody, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    body.student_id = own_account(caller, body.student_id)
     message = body.message.strip()
     if not message:
         raise HTTPException(status_code=400, detail="Type a message first.")
@@ -329,7 +339,8 @@ def chat(body: ChatBody) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 
 @app.post("/api/quiz/start")
-def quiz_start(body: QuizStartBody) -> dict[str, Any]:
+def quiz_start(body: QuizStartBody, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    body.student_id = own_account(caller, body.student_id)
     _check_variant(body.variant)
     session = get_session(body.student_id)
     if body.concept not in session.quiz_round:
@@ -343,7 +354,8 @@ def quiz_start(body: QuizStartBody) -> dict[str, Any]:
 
 
 @app.post("/api/quiz/skip")
-def quiz_skip(body: QuizSkipBody) -> dict[str, Any]:
+def quiz_skip(body: QuizSkipBody, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    body.student_id = own_account(caller, body.student_id)
     session = get_session(body.student_id)
     if body.concept not in session.quiz_round:
         session.quiz_round[body.concept] = next_round_number(body.student_id, body.concept)
@@ -351,7 +363,8 @@ def quiz_skip(body: QuizSkipBody) -> dict[str, Any]:
 
 
 @app.post("/api/quiz/submit")
-def quiz_submit(body: QuizSubmitBody) -> dict[str, Any]:
+def quiz_submit(body: QuizSubmitBody, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    body.student_id = own_account(caller, body.student_id)
     _check_variant(body.variant)
     session = get_session(body.student_id)
     round_number = session.quiz_round.get(body.concept)
@@ -390,7 +403,8 @@ def quiz_submit(body: QuizSubmitBody) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 
 @app.get("/api/profile")
-def get_profile(student_id: str) -> dict[str, Any]:
+def get_profile(student_id: Optional[str] = None, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    student_id = readable_by(caller, student_id)
     return {
         "profile": _with_schedule(load_student_profile(student_id), student_id),
         "due_for_review": [row["concept"] for row in get_due_reviews(student_id)],
@@ -398,31 +412,38 @@ def get_profile(student_id: str) -> dict[str, Any]:
 
 
 @app.get("/api/eval-metrics")
-def eval_metrics(student_id: Optional[str] = None) -> dict[str, Any]:
+def eval_metrics(student_id: Optional[str] = None, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    if student_id or not caller.is_teacher:
+        student_id = readable_by(caller, student_id)   # no student given: a teacher sees the whole class
     metrics = compute_all_metrics(student_id)
     order = ["learning_gain", "misconception_recall", "adaptation_quality", "escalation_precision", "memory_usefulness", "hint_quality"]
     return {"metrics": [_fmt_metric(key, metrics[key]) for key in order]}
 
 
 @app.get("/api/misconception-graph")
-def misconception_graph(concept: str, student_id: Optional[str] = None) -> dict[str, Any]:
+def misconception_graph(concept: str, student_id: Optional[str] = None, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    student_id = readable_by(caller, student_id) if (student_id or not caller.is_teacher) else None
     profile = load_student_profile(student_id) if student_id else {}
     return build_prerequisite_graph_json(concept, profile)
 
 
 @app.get("/api/schedule")
-def schedule(student_id: str) -> dict[str, Any]:
+def schedule(student_id: Optional[str] = None, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    student_id = readable_by(caller, student_id)
     return {"schedule": get_schedule(student_id)}
 
 
 @app.get("/api/escalations")
-def escalations(student_id: str) -> dict[str, Any]:
+def escalations(student_id: str, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    require_teacher(caller)
+    student_id = student_id.strip().lower()
     rows = [r for r in get_interactions(student_id) if r.get("escalated")]
     return {"escalations": [_escalation_row(r) for r in rows]}
 
 
 @app.post("/api/escalations/review")
-def escalations_review(body: EscalationReviewBody) -> dict[str, Any]:
+def escalations_review(body: EscalationReviewBody, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    require_teacher(caller)
     ok = set_escalation_warranted(body.id, body.warranted)
     if not ok:
         raise HTTPException(status_code=404, detail="Escalation not found.")
