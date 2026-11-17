@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { getLearningCurve, getRollingStats } from '../api/client';
+import { getLearningCurve, getRollingStats, isMock } from '../api/client';
+import { useHud } from '../api/hud';
 import { DialogBox } from '../components/Dialog';
 import { PixelButton } from '../components/PixelButton';
 import { WizardSprite } from '../components/Sprites';
@@ -7,6 +8,7 @@ export const ProgressScreen = ({
   next,
   studentId
 }) => {
+  const hud = useHud(), coins = hud.coins;
   let [n, r] = (0, React.useState)([]),
     [i, a] = (0, React.useState)({
       rolling_accuracy: 84,
@@ -18,7 +20,7 @@ export const ProgressScreen = ({
     [d, f] = (0, React.useState)(null);
   (0, React.useEffect)(() => {
     studentId && (s(!0), Promise.all([getLearningCurve(studentId, c), getRollingStats(studentId)]).then(([e, t]) => {
-      r(e), (t.streak > 0 || t.rolling_accuracy > 0) && a(t), s(!1);
+      r(e), (!isMock || t.streak > 0 || t.rolling_accuracy > 0) && a(t), s(!1);
     }));
   }, [studentId, c]);
   let p = [{
@@ -35,7 +37,7 @@ export const ProgressScreen = ({
       color: `#4aff91`
     }, {
       label: `COINS`,
-      value: `🪙 82`,
+      value: `🪙 ${coins}`,
       color: `#ffe94a`
     }],
     m = n.length > 0 ? n : [],
@@ -43,6 +45,10 @@ export const ProgressScreen = ({
     v = e => 30 + (m.length <= 1 ? 260 / 2 : e / (m.length - 1) * 260),
     y = e => 110 - e / h * 80,
     b = m.map((e, t) => `${v(t)},${y(e.accuracy_pct)}`).join(` `);
+  const lessonPct = isMock ? 70 : Math.round(i.lesson_progress_pct ?? 0),
+    tip = isMock ? `You're on a streak! Keep going and you'll earn the PHOENIX badge. Study for 20 more minutes today!`
+      : i.streak > 0 ? `You're on a ${i.streak}-day streak! A few questions every day keeps it going.`
+      : `Answer a question today to start a streak!`;
   return <div className="game-screen scanlines" style={{
     background: `linear-gradient(to bottom, #2a1050, #3d1f6e)`,
     display: `flex`,
@@ -64,8 +70,8 @@ export const ProgressScreen = ({
           color: e.color
         }}>{e.value}</p></div>)}</div><div className="w-full max-w-md px-4 mb-6"><div className="flex justify-between font-pixel text-xs mb-1" style={{
         color: `#00ffee`
-      }}><span>LESSON PROGRESS</span><span>70%</span></div><div className="hp-bar-track w-full"><div className="hp-bar-fill" style={{
-          "--fill": `70%`
+      }}><span>LESSON PROGRESS</span><span>{lessonPct}%</span></div><div className="hp-bar-track w-full"><div className="hp-bar-fill" style={{
+          "--fill": `${lessonPct}%`
         }} /></div></div><div className="w-full max-w-md px-4 mb-6"><div className="flex items-center justify-between mb-3"><p className="font-pixel text-xs" style={{
           color: `#ff00cc`
         }}>📈 LEARNING CURVE</p><div className="flex gap-2">{[`session`, `day`].map(e => <button onClick={() => u(e)} className="pixel-btn font-pixel border-2 border-black px-2 py-1" style={{
@@ -102,5 +108,5 @@ export const ProgressScreen = ({
             })} key={t}><rect x={v(t) - 5} y={y(e.accuracy_pct) - 5} width={10} height={10} fill="#ff00cc" stroke="#000" strokeWidth="2" /><rect x={v(t) - 2} y={y(e.accuracy_pct) - 2} width={4} height={4} fill="#fff" /></g>)}{d && <g><rect x={Math.min(d.x - 30, 210)} y={d.y - 38} width={100} height={34} fill="#1a0a2e" stroke="#00ffee" strokeWidth="2" /><text x={Math.min(d.x - 25, 215)} y={d.y - 24} fill="#ffe94a" fontSize="6" fontFamily="'Press Start 2P', cursive">{d.pt.label}{": "}{d.pt.accuracy_pct}%</text><text x={Math.min(d.x - 25, 215)} y={d.y - 12} fill="#00ffee" fontSize="6" fontFamily="'Press Start 2P', cursive">{"⏱ "}{Math.round(d.pt.avg_time_ms / 1e3)}s avg</text></g>}</svg></div>}<div className="absolute top-1 left-1"><span className="font-pixel" style={{
             fontSize: `6px`,
             color: `#ff00cc`
-          }}>ACCURACY %</span></div></div></div><div className="flex items-end gap-4 w-full max-w-md px-4 mb-8"><WizardSprite mood="thinking" size={1.1} /><div className="flex-1"><DialogBox speaker="PIXEL TIP" text="You're on a streak! Keep going and you'll earn the PHOENIX badge. Study for 20 more minutes today!" /></div></div><PixelButton onClick={next} color="#ff00cc" size="lg">CONTINUE ▶</PixelButton></div>;
+          }}>ACCURACY %</span></div></div></div><div className="flex items-end gap-4 w-full max-w-md px-4 mb-8"><WizardSprite mood="thinking" size={1.1} /><div className="flex-1"><DialogBox speaker="PIXEL TIP" text={tip} /></div></div><PixelButton onClick={next} color="#ff00cc" size="lg">CONTINUE ▶</PixelButton></div>;
 };

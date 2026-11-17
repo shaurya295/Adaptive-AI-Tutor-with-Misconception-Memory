@@ -43,9 +43,11 @@ def _check_mcq(q, topic, misconceptions):
         assert 15 <= len(fb["text"]) <= 260, (q["id"], i)
         mid = fb.get("misconception")
         assert mid is None or (mid in misconceptions and misconceptions[mid]["topic"] == topic), (q["id"], mid)
-    # numeric keys must not collide with an equivalent wrong option (e.g. 1/2 and 0.5)
+    # numeric keys must not collide with an equivalent wrong option (e.g. 1/2 and 0.5), except where the
+    # question asks for a form ("simplify", "lowest terms"): there the unsimplified fraction is a real wrong answer
     values = [parse_value(c) for c in q["choices"]]
-    if values[q["answer"]] is not None:
+    asks_for_form = re.search(r"simplif|lowest terms|simplest form", q["question"], re.I)
+    if values[q["answer"]] is not None and not asks_for_form:
         assert values.count(values[q["answer"]]) == 1, f"two options have the same value: {q['id']}"
 
 

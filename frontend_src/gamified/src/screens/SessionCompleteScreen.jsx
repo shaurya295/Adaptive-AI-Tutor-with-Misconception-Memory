@@ -1,5 +1,16 @@
 import { PixelButton } from '../components/PixelButton';
 import { WizardSprite } from '../components/Sprites';
+import { getLastSummary, isMock } from '../api/client';
+
+const REFERENCE_ROWS = [[`QUESTIONS`, `10 / 10`], [`CORRECT`, `8`], [`XP EARNED`, `+340`], [`COINS`, `+25 🪙`], [`TIME`, `14:32`]];
+function summaryRows() {
+  if (isMock) return REFERENCE_ROWS;
+  const s = getLastSummary();
+  if (!s) return [[`QUESTIONS`, `0`], [`CORRECT`, `0`], [`XP EARNED`, `+0`], [`COINS`, `+0 🪙`], [`TIME`, `0:00`]];
+  const mins = Math.floor(s.duration_s / 60), secs = String(s.duration_s % 60).padStart(2, `0`);
+  return [[`QUESTIONS`, `${s.questions} / ${s.questions}`], [`CORRECT`, `${s.correct}`], [`XP EARNED`, `+${s.xp_earned}`], [`COINS`, `+${s.coins_earned} 🪙`], [`TIME`, `${mins}:${secs}`]];
+}
+
 export const SessionCompleteScreen = ({
   next
 }) => <div className="game-screen scanlines starfield" style={{
@@ -33,7 +44,7 @@ export const SessionCompleteScreen = ({
       background: `#3d1f6e`,
       boxShadow: `6px 6px 0 #000`,
       borderColor: `#ffe94a`
-    }}>{[[`QUESTIONS`, `10 / 10`], [`CORRECT`, `8`], [`XP EARNED`, `+340`], [`COINS`, `+25 🪙`], [`TIME`, `14:32`]].map(([e, t]) => <div className="flex justify-between font-pixel text-xs" key={e}><span style={{
+    }}>{summaryRows().map(([e, t]) => <div className="flex justify-between font-pixel text-xs" key={e}><span style={{
           color: `#00ffee`
         }}>{e}</span><span style={{
           color: `#ffe94a`

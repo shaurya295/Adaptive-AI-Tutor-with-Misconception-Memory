@@ -10,7 +10,22 @@
           "They're equal",
           "Cannot tell"
         ],
-        "answer": 0
+        "answer": 0,
+        "clue": "Turn both fractions into eighths so the pieces are the same size, then compare the tops.",
+        "feedback": {
+          "1": {
+            "text": "5 and 8 are bigger numbers, but eighths are smaller pieces than quarters. 3/4 is the same as 6/8, and 6/8 is more than 5/8.",
+            "misconception": "fractions-bigger-denominator-bigger"
+          },
+          "2": {
+            "text": "They are not quite equal. Write 3/4 as 6/8 and you can see it is one eighth more than 5/8.",
+            "misconception": null
+          },
+          "3": {
+            "text": "We can tell! Give both fractions the same bottom number: 3/4 = 6/8, which beats 5/8.",
+            "misconception": null
+          }
+        }
       },
       {
         "id": 2,
@@ -21,7 +36,22 @@
           "1/4",
           "2/4"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "Rewrite one half as quarters first, so both fractions use pieces of the same size.",
+        "feedback": {
+          "0": {
+            "text": "You added the tops and the bottoms. The bottom number is the size of the pieces, so it is not added. 1/2 is 2/4, and 2/4 + 1/4 = 3/4.",
+            "misconception": "fractions-add-tops-and-bottoms"
+          },
+          "2": {
+            "text": "That is what you get by taking away. Here we add: 1/2 is 2/4, and 2/4 + 1/4 = 3/4.",
+            "misconception": null
+          },
+          "3": {
+            "text": "You added the tops but kept quarters without changing 1/2 first. 1/2 is 2/4, so 2/4 + 1/4 = 3/4.",
+            "misconception": "fractions-add-tops-and-bottoms"
+          }
+        }
       },
       {
         "id": 3,
@@ -32,7 +62,22 @@
           "3/4",
           "2/3"
         ],
-        "answer": 2
+        "answer": 2,
+        "clue": "Find the biggest number that divides both 6 and 8, then divide the top and the bottom by it.",
+        "feedback": {
+          "0": {
+            "text": "Taking 2 away from the top and bottom changes the size of the fraction. To simplify, divide both by the same number: 6 and 8 both divide by 2.",
+            "misconception": null
+          },
+          "1": {
+            "text": "That is the fraction we started with. Both 6 and 8 can be divided by 2, so it can be made simpler.",
+            "misconception": null
+          },
+          "3": {
+            "text": "2/3 is a different amount from 6/8. Divide the top and bottom by the same number, 2, and you get 3/4.",
+            "misconception": null
+          }
+        }
       }
     ],
     "post": [
@@ -45,7 +90,22 @@
           "They're equal",
           "Cannot tell"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "Change the thirds into ninths so both fractions use pieces of the same size.",
+        "feedback": {
+          "0": {
+            "text": "Bigger numbers don't always mean a bigger fraction. Ninths are small pieces: 2/3 is the same as 6/9, which is more than 5/9.",
+            "misconception": "fractions-bigger-denominator-bigger"
+          },
+          "2": {
+            "text": "Close, but not equal. 2/3 is 6/9, which is one ninth more than 5/9.",
+            "misconception": null
+          },
+          "3": {
+            "text": "We can compare them by using the same bottom number. 2/3 = 6/9, and 6/9 is bigger than 5/9.",
+            "misconception": null
+          }
+        }
       },
       {
         "id": 5,
@@ -56,7 +116,22 @@
           "1/6",
           "2/6"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "Write one third as sixths, add the tops, then simplify your answer.",
+        "feedback": {
+          "0": {
+            "text": "You added the tops and the bottoms. Keep the piece size the same instead: 1/3 is 2/6, and 2/6 + 1/6 = 3/6, which simplifies to 1/2.",
+            "misconception": "fractions-add-tops-and-bottoms"
+          },
+          "2": {
+            "text": "That is just one of the two fractions. Adding 1/3 makes it bigger: 2/6 + 1/6 = 3/6 = 1/2.",
+            "misconception": null
+          },
+          "3": {
+            "text": "You added the tops but didn't change 1/3 into sixths first. 1/3 is 2/6, so the total is 3/6, which is 1/2.",
+            "misconception": "fractions-add-tops-and-bottoms"
+          }
+        }
       },
       {
         "id": 6,
@@ -67,7 +142,22 @@
           "4/5",
           "2/3"
         ],
-        "answer": 0
+        "answer": 0,
+        "clue": "Both 9 and 12 are in the three times table. Divide the top and the bottom by that number.",
+        "feedback": {
+          "1": {
+            "text": "That is the starting fraction. 9 and 12 can both be divided by 3, so it simplifies further.",
+            "misconception": null
+          },
+          "2": {
+            "text": "4/5 is a different amount. Simplifying means dividing the top and bottom by the same number: 9 and 12 both divide by 3.",
+            "misconception": null
+          },
+          "3": {
+            "text": "2/3 is a little less than 9/12. Divide both 9 and 12 by 3 to get the simplest form, 3/4.",
+            "misconception": null
+          }
+        }
       }
     ]
   },
@@ -82,7 +172,22 @@
           "1/2",
           "1"
         ],
-        "answer": 2
+        "answer": 2,
+        "clue": "Count the sides of a coin. How many of them are heads?",
+        "feedback": {
+          "0": {
+            "text": "1/4 would be the chance of two heads in two flips. With one flip there are just 2 outcomes, and 1 of them is heads.",
+            "misconception": null
+          },
+          "1": {
+            "text": "A coin has only 2 possible outcomes, heads or tails, not 3. So heads is 1 out of 2.",
+            "misconception": "probability-miscounted-outcomes"
+          },
+          "3": {
+            "text": "A probability of 1 means certain, but tails could happen too. Put the 1 favourable outcome over the 2 possible outcomes.",
+            "misconception": "probability-miscounted-outcomes"
+          }
+        }
       },
       {
         "id": 8,
@@ -93,7 +198,22 @@
           "1/2",
           "4/6"
         ],
-        "answer": 0
+        "answer": 0,
+        "clue": "A die has six faces. How many of them show a four?",
+        "feedback": {
+          "1": {
+            "text": "The 4 is the number we want, not the total. A die has 6 faces and only one of them is a 4.",
+            "misconception": "probability-miscounted-outcomes"
+          },
+          "2": {
+            "text": "Either it is a 4 or it isn't, but those two results are not equally likely. Only 1 of the 6 faces is a 4.",
+            "misconception": "probability-miscounted-outcomes"
+          },
+          "3": {
+            "text": "Only one face shows a 4, so the top number is 1, not 4. That gives 1 out of 6.",
+            "misconception": "probability-miscounted-outcomes"
+          }
+        }
       },
       {
         "id": 9,
@@ -104,7 +224,22 @@
           "1/2",
           "3/2"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "Put the number of red marbles on top and the number of all the marbles on the bottom.",
+        "feedback": {
+          "0": {
+            "text": "2/5 is the chance of blue. For red, count the 3 red marbles out of 5 in total.",
+            "misconception": "probability-miscounted-outcomes"
+          },
+          "2": {
+            "text": "There are two colours, but not the same number of each. 3 of the 5 marbles are red.",
+            "misconception": "probability-miscounted-outcomes"
+          },
+          "3": {
+            "text": "A probability can never be more than 1. Put red over all the marbles: 3 out of 3 + 2 = 5.",
+            "misconception": "probability-miscounted-outcomes"
+          }
+        }
       }
     ],
     "post": [
@@ -117,7 +252,22 @@
           "1/4",
           "1"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "A coin has two sides. How many of them are tails?",
+        "feedback": {
+          "0": {
+            "text": "A coin has only 2 outcomes, heads or tails, so the bottom number is 2, not 3.",
+            "misconception": "probability-miscounted-outcomes"
+          },
+          "2": {
+            "text": "1/4 is the chance of two tails in two flips. For one flip, tails is 1 of the 2 outcomes.",
+            "misconception": null
+          },
+          "3": {
+            "text": "A probability of 1 means certain, but heads could happen too. Tails is 1 outcome out of 2.",
+            "misconception": "probability-miscounted-outcomes"
+          }
+        }
       },
       {
         "id": 11,
@@ -128,7 +278,22 @@
           "1/2",
           "2/3"
         ],
-        "answer": 2
+        "answer": 2,
+        "clue": "List the even numbers on a die, then compare with all six faces.",
+        "feedback": {
+          "0": {
+            "text": "There is more than one even number on a die. 2, 4 and 6 are all even, so it is 3 out of 6.",
+            "misconception": "probability-miscounted-outcomes"
+          },
+          "1": {
+            "text": "Did you miss one? The even numbers are 2, 4 and 6. That is 3 out of 6.",
+            "misconception": "probability-miscounted-outcomes"
+          },
+          "3": {
+            "text": "Only 3 of the 6 faces are even: 2, 4 and 6. So the chance is 3 out of 6.",
+            "misconception": "probability-miscounted-outcomes"
+          }
+        }
       },
       {
         "id": 12,
@@ -139,7 +304,22 @@
           "1/4",
           "1/2"
         ],
-        "answer": 0
+        "answer": 0,
+        "clue": "Count the yellow marbles, then count every marble in the bag.",
+        "feedback": {
+          "1": {
+            "text": "4/5 is the chance of green. There is only 1 yellow marble out of 5 in total.",
+            "misconception": "probability-miscounted-outcomes"
+          },
+          "2": {
+            "text": "You compared yellow with green. The bottom number should be all the marbles: 4 + 1 = 5.",
+            "misconception": "probability-miscounted-outcomes"
+          },
+          "3": {
+            "text": "There are two colours, but far more green than yellow. Only 1 of the 5 marbles is yellow.",
+            "misconception": "probability-miscounted-outcomes"
+          }
+        }
       }
     ]
   },
@@ -154,7 +334,22 @@
           "17",
           "6"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "Take the same amount away from both sides so that x is left on its own.",
+        "feedback": {
+          "0": {
+            "text": "5 is the number being added to x, not x itself. Take 5 from both sides: x = 12 - 5.",
+            "misconception": null
+          },
+          "2": {
+            "text": "Adding 5 makes it bigger, but we need to undo the + 5. Take 5 away from both sides: 12 - 5 = 7.",
+            "misconception": "algebra-move-without-sign-change"
+          },
+          "3": {
+            "text": "So close! Check it: 6 + 5 = 11, not 12. Try 12 - 5 again.",
+            "misconception": null
+          }
+        }
       },
       {
         "id": 14,
@@ -165,7 +360,22 @@
           "5",
           "45"
         ],
-        "answer": 2
+        "answer": 2,
+        "clue": "3x means 3 times x. Undo the times by dividing both sides by 3.",
+        "feedback": {
+          "0": {
+            "text": "3 is the number multiplying x. To find x, divide both sides by 3: 15 divided by 3.",
+            "misconception": null
+          },
+          "1": {
+            "text": "3x means 3 times x, not 3 plus x, so taking 3 away doesn't undo it. Divide both sides by 3 instead.",
+            "misconception": "algebra-move-without-sign-change"
+          },
+          "3": {
+            "text": "Multiplying again makes it bigger. To undo times 3, divide both sides by 3: 15 divided by 3 = 5.",
+            "misconception": "algebra-move-without-sign-change"
+          }
+        }
       },
       {
         "id": 15,
@@ -176,7 +386,22 @@
           "5x²",
           "2x3x"
         ],
-        "answer": 0
+        "answer": 0,
+        "clue": "Think of x as a box. Two boxes plus three boxes makes how many boxes?",
+        "feedback": {
+          "1": {
+            "text": "We are adding here, not multiplying. Two x's and three x's together make five x's.",
+            "misconception": null
+          },
+          "2": {
+            "text": "Adding like terms doesn't change the power of x. 2x + 3x is just five lots of x.",
+            "misconception": null
+          },
+          "3": {
+            "text": "Like terms can be joined into one term. Add the numbers in front: 2 + 3 = 5, so it is 5x.",
+            "misconception": null
+          }
+        }
       }
     ],
     "post": [
@@ -189,7 +414,22 @@
           "36",
           "9"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "Undo the take away by adding the same number to both sides.",
+        "feedback": {
+          "0": {
+            "text": "Taking 4 away again goes the wrong way. Undo the minus 4 by adding 4 to both sides: 9 + 4 = 13.",
+            "misconception": "algebra-move-without-sign-change"
+          },
+          "2": {
+            "text": "Multiplying doesn't undo taking away. Add 4 to both sides instead: x = 9 + 4.",
+            "misconception": "algebra-move-without-sign-change"
+          },
+          "3": {
+            "text": "9 is what is left after 4 was taken away. Add the 4 back on to find x.",
+            "misconception": null
+          }
+        }
       },
       {
         "id": 17,
@@ -200,7 +440,22 @@
           "24",
           "5"
         ],
-        "answer": 3
+        "answer": 3,
+        "clue": "4x means four times x. Divide both sides by four to get x on its own.",
+        "feedback": {
+          "0": {
+            "text": "4 is the number multiplying x. Divide both sides by 4 to find x: 20 divided by 4.",
+            "misconception": null
+          },
+          "1": {
+            "text": "4x means 4 times x, not 4 plus x, so taking 4 away doesn't undo it. Divide both sides by 4 instead.",
+            "misconception": "algebra-move-without-sign-change"
+          },
+          "2": {
+            "text": "Adding 4 doesn't undo 4 times x. Divide both sides by 4 instead: 20 divided by 4.",
+            "misconception": "algebra-move-without-sign-change"
+          }
+        }
       },
       {
         "id": 18,
@@ -211,7 +466,22 @@
           "7x²",
           "3x"
         ],
-        "answer": 0
+        "answer": 0,
+        "clue": "Imagine five apples plus two apples. Now swap the apples for x.",
+        "feedback": {
+          "1": {
+            "text": "We are adding the terms, not multiplying. 5 lots of x plus 2 lots of x is 7 lots of x.",
+            "misconception": null
+          },
+          "2": {
+            "text": "When you add like terms the power of x stays the same. Just add the 5 and the 2 in front of x.",
+            "misconception": null
+          },
+          "3": {
+            "text": "That is what taking away gives. Here we add: 5x + 2x = 7x.",
+            "misconception": null
+          }
+        }
       }
     ]
   },
@@ -226,7 +496,22 @@
           "270",
           "360"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "Tear the three corners off a paper triangle and line them up. They make a straight line.",
+        "feedback": {
+          "0": {
+            "text": "90 degrees is one right angle. All three angles of a triangle together make a straight line, which is 180 degrees.",
+            "misconception": "geometry-triangle-angles-360"
+          },
+          "2": {
+            "text": "Not every angle in a triangle is a right angle. All three angles always add up to 180 degrees.",
+            "misconception": "geometry-triangle-angles-360"
+          },
+          "3": {
+            "text": "360 degrees is a full turn, the total around a point or inside a four-sided shape. A triangle's angles add to 180 degrees.",
+            "misconception": "geometry-triangle-angles-360"
+          }
+        }
       },
       {
         "id": 20,
@@ -237,7 +522,22 @@
           "16",
           "10"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "Area counts the squares inside. Picture 5 rows with 3 squares in each row.",
+        "feedback": {
+          "0": {
+            "text": "Adding the sides is how a perimeter starts. Area is the space inside: length times width, 5 times 3.",
+            "misconception": "geometry-perimeter-area-mixup"
+          },
+          "2": {
+            "text": "16 is the perimeter, the distance around the edge. Area is the space inside: 5 times 3.",
+            "misconception": "geometry-perimeter-area-mixup"
+          },
+          "3": {
+            "text": "Check the multiplication: area is length times width, so it is 5 times 3.",
+            "misconception": null
+          }
+        }
       },
       {
         "id": 21,
@@ -248,7 +548,22 @@
           "7",
           "8"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "Think of a honeycomb cell, or the shape of a nut that fits on a bolt.",
+        "feedback": {
+          "0": {
+            "text": "5 sides make a pentagon. A hexagon has one more side than that. 'Hex' means six.",
+            "misconception": null
+          },
+          "2": {
+            "text": "7 sides make a heptagon. 'Hex' means six, so a hexagon has 6 sides.",
+            "misconception": null
+          },
+          "3": {
+            "text": "8 sides make an octagon, like a stop sign. A hexagon has 6 sides.",
+            "misconception": null
+          }
+        }
       }
     ],
     "post": [
@@ -261,7 +576,22 @@
           "180",
           "360"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "Think of the square corner of a book or a door frame.",
+        "feedback": {
+          "0": {
+            "text": "45 degrees is half of a right angle. A right angle is a square corner: 90 degrees.",
+            "misconception": null
+          },
+          "2": {
+            "text": "180 degrees is a straight line, which is two right angles. One right angle is 90 degrees.",
+            "misconception": "geometry-complementary-supplementary-mixup"
+          },
+          "3": {
+            "text": "360 degrees is a full turn. A right angle is a quarter turn: 90 degrees.",
+            "misconception": null
+          }
+        }
       },
       {
         "id": 23,
@@ -272,7 +602,22 @@
           "18",
           "20"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "Area is the space inside. Multiply the length by the width.",
+        "feedback": {
+          "0": {
+            "text": "Adding the sides is how a perimeter starts. Area is length times width: 8 times 2.",
+            "misconception": "geometry-perimeter-area-mixup"
+          },
+          "2": {
+            "text": "Check the multiplication: the area is 8 times 2.",
+            "misconception": null
+          },
+          "3": {
+            "text": "20 is the perimeter, the distance around. Area is the space inside: 8 times 2 = 16.",
+            "misconception": "geometry-perimeter-area-mixup"
+          }
+        }
       },
       {
         "id": 24,
@@ -283,7 +628,22 @@
           "6",
           "7"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "'Penta' comes from the Greek word for the number of fingers on one hand.",
+        "feedback": {
+          "0": {
+            "text": "4 sides make a quadrilateral, like a square. A pentagon has one more side.",
+            "misconception": null
+          },
+          "2": {
+            "text": "6 sides make a hexagon. 'Penta' means five, so a pentagon has 5 sides.",
+            "misconception": null
+          },
+          "3": {
+            "text": "7 sides make a heptagon. A pentagon has 5 sides, like the side view of a simple house.",
+            "misconception": null
+          }
+        }
       }
     ]
   },
@@ -298,7 +658,22 @@
           "0.5%",
           "500%"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "Percent means out of 100. Multiply the decimal by 100.",
+        "feedback": {
+          "0": {
+            "text": "That moves the point only one place. To change a decimal to a percent, multiply by 100, which moves it two places: 0.5 = 50%.",
+            "misconception": "decimals-percent-move-one-place"
+          },
+          "2": {
+            "text": "Adding a % sign isn't enough. Multiply by 100 first: 0.5 times 100 = 50, so it is 50%.",
+            "misconception": "decimals-percent-move-one-place"
+          },
+          "3": {
+            "text": "That moves the point three places. Multiplying by 100 moves it two places: 0.5 becomes 50%.",
+            "misconception": "decimals-percent-move-one-place"
+          }
+        }
       },
       {
         "id": 26,
@@ -309,7 +684,22 @@
           "25",
           "40"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "25% is the same as one quarter. Split the amount into four equal parts.",
+        "feedback": {
+          "0": {
+            "text": "16 is 20% of 80. 25% is a quarter, so divide 80 by 4.",
+            "misconception": null
+          },
+          "2": {
+            "text": "25 is the percentage, not the answer. 25% means a quarter, so find a quarter of 80.",
+            "misconception": null
+          },
+          "3": {
+            "text": "40 is half of 80, which is 50%. 25% is half of that again.",
+            "misconception": null
+          }
+        }
       },
       {
         "id": 27,
@@ -320,7 +710,22 @@
           "0.43",
           "1.34"
         ],
-        "answer": 1
+        "answer": 1,
+        "clue": "Make the bottom 100: what do you multiply 4 by to get 100? Do the same to the top.",
+        "feedback": {
+          "0": {
+            "text": "The digits of a fraction can't just be written after a point. 3/4 means 3 divided by 4, which is 75 hundredths.",
+            "misconception": null
+          },
+          "2": {
+            "text": "Fractions don't turn into decimals by writing their digits. 3/4 = 75/100 = 0.75.",
+            "misconception": null
+          },
+          "3": {
+            "text": "3/4 is less than 1, so its decimal must start with 0. 3 divided by 4 is 0.75.",
+            "misconception": null
+          }
+        }
       }
     ],
     "post": [
@@ -333,7 +738,22 @@
           "25%",
           "250%"
         ],
-        "answer": 2
+        "answer": 2,
+        "clue": "Multiply by 100. That moves the decimal point two places to the right.",
+        "feedback": {
+          "0": {
+            "text": "The point moved only one place. Multiply by 100 to move it two places: 0.25 = 25%.",
+            "misconception": "decimals-percent-move-one-place"
+          },
+          "1": {
+            "text": "Adding a % sign isn't enough. Multiply by 100 first: 0.25 times 100 = 25, so it is 25%.",
+            "misconception": "decimals-percent-move-one-place"
+          },
+          "3": {
+            "text": "That moved the point three places. Multiplying by 100 moves it two places: 0.25 = 25%.",
+            "misconception": "decimals-percent-move-one-place"
+          }
+        }
       },
       {
         "id": 29,
@@ -344,7 +764,22 @@
           "19",
           "90"
         ],
-        "answer": 0
+        "answer": 0,
+        "clue": "10% means one tenth. Split the amount into ten equal parts.",
+        "feedback": {
+          "1": {
+            "text": "10 is the percentage, not the answer. 10% means one tenth, so divide 90 by 10.",
+            "misconception": null
+          },
+          "2": {
+            "text": "Adding the numbers doesn't find a percentage. 10% of 90 is one tenth of 90.",
+            "misconception": null
+          },
+          "3": {
+            "text": "90 is the whole amount, which is 100%. 10% is one tenth of it.",
+            "misconception": null
+          }
+        }
       },
       {
         "id": 30,
@@ -355,7 +790,22 @@
           "0.25",
           "1.4"
         ],
-        "answer": 2
+        "answer": 2,
+        "clue": "Make the bottom 100: multiply the top and the bottom by the same number.",
+        "feedback": {
+          "0": {
+            "text": "Writing the digits after a point doesn't work. 1/4 means 1 divided by 4, which is 25 hundredths.",
+            "misconception": null
+          },
+          "1": {
+            "text": "0.4 is 4 tenths, which is 2/5. 1/4 means 1 divided by 4, which is 0.25.",
+            "misconception": null
+          },
+          "3": {
+            "text": "1/4 is less than 1, so the decimal must start with 0. 1/4 = 25/100 = 0.25.",
+            "misconception": null
+          }
+        }
       }
     ]
   }

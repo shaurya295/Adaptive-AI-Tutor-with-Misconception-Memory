@@ -313,6 +313,7 @@ def learning_curve(granularity: str = "session", caller: Caller = WHO) -> dict[s
 @router.get("/game/stats")
 def stats(caller: Caller = WHO) -> dict[str, Any]:
     rows = store.attempts(caller.email)
+    mastery = load_student_profile(caller.email).get("concept_mastery") or {}
     recent = rows[-20:]
     times = [r["time_taken_ms"] for r in recent if r["time_taken_ms"]]
     last_seen: dict[str, str] = {}
@@ -335,6 +336,7 @@ def stats(caller: Caller = WHO) -> dict[str, Any]:
         "active_misconceptions": len(last_seen),
         "escalations": escalations,
         "streak": hud(caller.email)["streak"],
+        "lesson_progress_pct": round(100 * sum(((mastery.get(t) or {}).get("mastery", 0.0)) for t in content.topics()) / len(content.topics()), 1),
     }
 
 

@@ -18,7 +18,11 @@ Each entry needs the project owner's sign-off.
 | G2 | Coins | Always 82; "hint coins" and "power-ups" described but not built | Earned for correct answers and finished sessions. Spent on an extra hint before answering. The hint after a wrong answer is always free, so coins never block help. |
 | G3 | Leaderboard | 10 made-up players | Real players on this server only, ranked by real XP. |
 | G4 | Lesson topic | No topic picker; START LESSON starts | The tutor picks (a topic due for review first, otherwise the weakest). The student can still choose via REVIEW NOW, the misconception map, or the Free Quest chips. |
+| G6 | Reward screen | Always "FRACTIONS MASTER" | Shows the latest badge really earned; with none yet, "NEXT BADGE · TOPIC MASTER · Reach 70% mastery in any topic". Proposed by Claude. |
+| G7 | Progress tip | "You're on a streak! …PHOENIX badge…" whatever the data | Says the real streak, or how to start one. Proposed by Claude. |
 | G5 | Free Quest chips | MATH, SCIENCE, HISTORY, ENGLISH, ART, CODE | Relabelled to the five maths topics plus ANY MATHS (same colours and layout). Proposed by Claude; owner may veto. |
+
+| D3 | Gamified quizzes | The last answer is counted twice at FINISH (5/5 can show 6/5) | Counted once | Bug in the reference. | proposed |
 
 ## Decisions that keep the reference as it is
 - **T1 schedule table:** the older repo page showed an extra spaced-repetition table on Student lookup. Removed (2026-11-18) to match the reference; next-review dates remain on the student cards and in the due-for-review banner.

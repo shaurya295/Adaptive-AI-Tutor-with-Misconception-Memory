@@ -1,8 +1,22 @@
 import { PixelButton } from '../components/PixelButton';
 import { WizardSprite } from '../components/Sprites';
+import { useHud } from '../api/hud';
+import { isMock } from '../api/client';
+
+// Mock mode shows the reference's badge. Real mode shows the latest badge earned, or what earns one.
+function useReward() {
+  const hud = useHud();
+  if (isMock) return { heading: `YOU EARNED A NEW BADGE!`, badge: `FRACTIONS MASTER`, detail: `Completed: Fractions` };
+  const latest = hud.badges && hud.badges[hud.badges.length - 1];
+  if (latest) return { heading: `YOU EARNED A NEW BADGE!`, badge: latest, detail: `Completed: ${latest.replace(/ MASTER$/, ``).toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase())}` };
+  return { heading: `NEXT BADGE`, badge: `TOPIC MASTER`, detail: `Reach 70% mastery in any topic` };
+}
+
 export const RewardScreen = ({
   goTo
-}) => <div className="game-screen scanlines" style={{
+}) => {
+  const reward = useReward();
+  return <div className="game-screen scanlines" style={{
   background: `linear-gradient(to bottom, #2a1050, #5b3a8e)`,
   display: `flex`,
   flexDirection: `column`,
@@ -28,7 +42,7 @@ export const RewardScreen = ({
     }}>GREAT JOB!</h1><p className="font-pixel text-xs" style={{
       color: `#00ffee`,
       textShadow: `2px 2px 0 #000`
-    }}>YOU EARNED A NEW BADGE!</p><div className="border-4 border-black p-6 flex flex-col items-center gap-3" style={{
+    }}>{reward.heading}</p><div className="border-4 border-black p-6 flex flex-col items-center gap-3" style={{
       background: `#3d1f6e`,
       borderColor: `#ffe94a`,
       boxShadow: `6px 6px 0 #000`
@@ -37,6 +51,7 @@ export const RewardScreen = ({
         animation: `float 3s ease-in-out infinite`
       }}>🌟</div><p className="font-pixel text-xs" style={{
         color: `#ffe94a`
-      }}>FRACTIONS MASTER</p><p className="font-body text-xs" style={{
+      }}>{reward.badge}</p><p className="font-body text-xs" style={{
         color: `#aaa`
-      }}>Completed: Fractions</p></div><WizardSprite mood="celebrate" size={1.5} className="animate-wiggle" /><div className="flex gap-4 flex-wrap justify-center mt-2"><PixelButton onClick={() => goTo(`mainmenu`)} color="#ff00cc" size="md">🏠 MENU</PixelButton><PixelButton onClick={() => goTo(`pretest`)} color="#4aff91" textColor="#000" size="md">▶ NEXT LESSON</PixelButton><PixelButton onClick={() => goTo(`leaderboard`)} color="#ffe94a" textColor="#000" size="md">🏆 LEADERBOARD</PixelButton></div></div></div>;
+      }}>{reward.detail}</p></div><WizardSprite mood="celebrate" size={1.5} className="animate-wiggle" /><div className="flex gap-4 flex-wrap justify-center mt-2"><PixelButton onClick={() => goTo(`mainmenu`)} color="#ff00cc" size="md">🏠 MENU</PixelButton><PixelButton onClick={() => goTo(`pretest`)} color="#4aff91" textColor="#000" size="md">▶ NEXT LESSON</PixelButton><PixelButton onClick={() => goTo(`leaderboard`)} color="#ffe94a" textColor="#000" size="md">🏆 LEADERBOARD</PixelButton></div></div></div>;
+};
