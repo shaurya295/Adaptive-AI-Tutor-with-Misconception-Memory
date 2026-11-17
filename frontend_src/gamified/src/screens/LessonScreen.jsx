@@ -3,6 +3,7 @@ import { getHint, recordAttempt } from '../api/mock';
 import { DialogBox } from '../components/Dialog';
 import { PixelButton } from '../components/PixelButton';
 import { QuestionTimer } from '../components/QuestionTimer';
+import { HintButton } from '../components/HintButton';
 import { WizardSprite } from '../components/Sprites';
 import { LESSON_QUESTION, LESSON_SCRIPT } from '../data/content';
 import { answerQuestion, finishSession, isMock, loadLesson, startSession } from '../api/client';
@@ -118,7 +119,7 @@ export const LessonScreen = ({
           }}>{"❓ "}{x.text}</p><div className="grid grid-cols-2 gap-3">{x.options.map(e => {
               let t = `#5b3a8e`;
               return (o || c) && (e === K ? t = `#4aff91` : e === o && (t = `#ff3355`)), <PixelButton onClick={() => w(e)} color={t} size="md" className="w-full" disabled={!!(o || c)} key={e}>{e}</PixelButton>;
-            })}</div></div>{(o || c) && <div className="flex items-center gap-4 mb-4 slide-up"><WizardSprite mood={o === K ? `celebrate` : `thinking`} size={.8} /><div className="flex-1 border-4 border-black bg-white p-3"><p className="font-body text-sm text-gray-900">{c ? `⏰ Time's up! The answer was: ${K}` : o === K ? `🎉 Correct! +${isMock ? 50 : 10} XP!` : `❌ Not quite! The correct answer is ${K}. Keep going!`}</p></div></div>}{(o && o !== K || c) && <div className="flex items-start gap-4 mb-4 slide-up"><div className="text-xl" aria-hidden={!0}>🤖</div><div className="flex-1 border-4 border-black p-3" style={{
+            })}</div></div>{!isMock && !(o || c) && <HintButton key={x.id} questionId={x.id} />}{(o || c) && <div className="flex items-center gap-4 mb-4 slide-up"><WizardSprite mood={o === K ? `celebrate` : `thinking`} size={.8} /><div className="flex-1 border-4 border-black bg-white p-3"><p className="font-body text-sm text-gray-900">{c ? `⏰ Time's up! The answer was: ${K}` : o === K ? `🎉 Correct! +${isMock ? 50 : 10} XP!` : `❌ Not quite! The correct answer is ${K}. Keep going!`}</p></div></div>}{(o && o !== K || c) && <div className="flex items-start gap-4 mb-4 slide-up"><div className="text-xl" aria-hidden={!0}>🤖</div><div className="flex-1 border-4 border-black p-3" style={{
             background: `#fff7d6`
           }}>{v ? <p className="font-body text-sm text-gray-700 italic">Pixel is thinking it through…</p> : <p className="font-body text-sm text-gray-900">{g}</p>}</div></div>}{(o || c) && <div className="flex justify-center mt-4"><PixelButton onClick={nextQuestion} color="#ff00cc" size="lg">NEXT ▶</PixelButton></div>}</div>}</div><div className="ground h-12" /></div>;
 };

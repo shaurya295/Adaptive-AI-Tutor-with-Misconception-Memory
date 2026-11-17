@@ -324,7 +324,9 @@ def stats(caller: Caller = WHO) -> dict[str, Any]:
             for m, c in list(last_seen.items()):
                 if c == r["concept"]:
                     del last_seen[m]
-    escalations = sum(1 for r in get_interactions(caller.email) if r.get("escalated"))
+    logged = get_interactions(caller.email)
+    escalations = sum(1 for r in logged if r.get("escalated"))
+    confidences = [r["confidence_score"] for r in logged if r.get("confidence_score") is not None and r["path"] != "game"][-20:]
     previous = rows[-40:-20]
     trend = lambda part: (sum(r["correct"] for r in part) / len(part)) if part else None
     return {
@@ -335,6 +337,7 @@ def stats(caller: Caller = WHO) -> dict[str, Any]:
         "hint_usage_pct": round(100 * sum(r["hint_bought"] for r in recent) / len(recent), 1) if recent else None,
         "active_misconceptions": len(last_seen),
         "escalations": escalations,
+        "avg_confidence": round(100 * sum(confidences) / len(confidences), 1) if confidences else None,
         "streak": hud(caller.email)["streak"],
         "lesson_progress_pct": round(100 * sum(((mastery.get(t) or {}).get("mastery", 0.0)) for t in content.topics()) / len(content.topics()), 1),
     }

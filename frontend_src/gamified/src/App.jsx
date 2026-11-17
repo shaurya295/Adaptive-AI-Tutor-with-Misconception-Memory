@@ -2,7 +2,7 @@ import * as React from 'react';
 import { initialScreen } from './screen-param';
 import { Hud } from './components/Hud';
 import { useHud } from './api/hud';
-import { getMe, guestSignIn, isMock, updateMe } from './api/client';
+import { getMe, guestSignIn, isMock, signOut, updateMe } from './api/client';
 import { Mascot } from './components/Mascot';
 import { AvatarSelectScreen } from './screens/AvatarSelectScreen';
 import { EvalMetricsScreen } from './screens/EvalMetricsScreen';
@@ -108,10 +108,10 @@ export function App() {
     background: `#1a0a2e`
   }}>{te && <Hud coins={n} level={hud.level} xp={r} goTo={D} playerName={u} />}<div style={{
       paddingTop: te ? 48 : 0
-    }}>{e === `landing` && <LandingScreen next={E} />}{e === `signin` && <SignInScreen next={E} back={() => t(`landing`)} onSetName={ne} />}{e === `mainmenu` && <MainMenuScreen goTo={D} />}{e === `welcome` && <WelcomeScreen next={E} />}{e === `avatarselect` && <AvatarSelectScreen next={E} onSelect={O} />}{e === `howitworks` && <HowItWorksScreen next={E} />}{e === `pretest` && <PreTestScreen studentId={k} onComplete={ie} onUpdateRisk={ee} />}{e === `lesson` && <LessonScreen next={E} studentId={k} onWrongStreak={w} onUpdateRisk={ee} />}{e === `posttest` && <PostTestScreen studentId={k} preScore={m} preTotal={g} onComplete={oe} onUpdateRisk={ee} />}{e === `progress` && <ProgressScreen next={E} studentId={k} />}{e === `sessioncomplete` && <SessionCompleteScreen next={E} />}{e === `reward` && <RewardScreen goTo={D} />}{e === `freequest` && <FreeQuestScreen goTo={D} setRobotMood={i} />}{e === `leaderboard` && <LeaderboardScreen goTo={D} profiles={a} activeProfileId={s} />}{e === `evalmetrics` && <EvalMetricsScreen goTo={D} sessionRiskScore={S} />}{e === `misconceptions` && <MisconceptionsScreen goTo={D} studentId={k} />}{e === `spacedrepeat` && <SpacedReviewScreen goTo={D} studentId={k} />}{e === `switchstudent` && <SwitchStudentScreen goTo={D} profiles={a} activeProfileId={s} onSwitch={e => {
+    }}>{e === `landing` && <LandingScreen next={E} />}{e === `signin` && <SignInScreen next={E} back={() => t(`landing`)} onSetName={ne} />}{e === `mainmenu` && <MainMenuScreen goTo={D} />}{e === `welcome` && <WelcomeScreen next={E} />}{e === `avatarselect` && <AvatarSelectScreen next={E} onSelect={O} />}{e === `howitworks` && <HowItWorksScreen next={E} />}{e === `pretest` && <PreTestScreen studentId={k} onComplete={ie} onUpdateRisk={ee} />}{e === `lesson` && <LessonScreen next={E} studentId={k} onWrongStreak={w} onUpdateRisk={ee} />}{e === `posttest` && <PostTestScreen studentId={k} preScore={m} preTotal={g} onComplete={oe} onUpdateRisk={ee} />}{e === `progress` && <ProgressScreen next={E} studentId={k} />}{e === `sessioncomplete` && <SessionCompleteScreen next={E} />}{e === `reward` && <RewardScreen goTo={D} />}{e === `freequest` && <FreeQuestScreen goTo={D} setRobotMood={i} />}{e === `leaderboard` && <LeaderboardScreen goTo={D} profiles={a} activeProfileId={s} />}{e === `evalmetrics` && <EvalMetricsScreen goTo={D} sessionRiskScore={S} />}{e === `misconceptions` && <MisconceptionsScreen goTo={D} studentId={k} />}{e === `spacedrepeat` && <SpacedReviewScreen goTo={D} studentId={k} />}{e === `switchstudent` && <SwitchStudentScreen goTo={D} profiles={isMock ? a : a.filter(x => x.id === s)} activeProfileId={s} onSwitch={e => {
         c(e);
         let t = a.find(t => t.id === e);
         t && d(t.name);
-      }} onAddNew={() => D(`signin`)} />}</div><Mascot screen={e} wrongAnswerStreak={C} spacedRepDueCount={dueCount} newBestCurve={!1} /></div>;
+      }} onAddNew={() => isMock ? D(`signin`) : signOut().catch(() => {}).finally(() => D(`signin`))} />}</div><Mascot screen={e} wrongAnswerStreak={C} spacedRepDueCount={dueCount} newBestCurve={!1} /></div>;
 }
 // JSX treats lower-case tags as HTML elements, so the minified component names get capitalised aliases.

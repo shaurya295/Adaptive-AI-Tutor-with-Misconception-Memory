@@ -2,6 +2,11 @@ import * as React from 'react';
 import { PixelButton } from '../components/PixelButton';
 import { WizardSprite } from '../components/Sprites';
 import { QUEST_CATEGORIES } from '../data/content';
+import { askTutor, isMock } from '../api/client';
+
+// Real mode: the chips are the maths topics (owner's decision G5); same colours and layout as the reference.
+const TOPIC_CHIPS = [[`½ FRACTIONS`, `Fractions`], [`🎲 PROBABILITY`, `Probability`], [`𝑥 ALGEBRA`, `Algebra`], [`📐 GEOMETRY`, `Geometry`], [`% DECIMALS`, `Decimals and Percentages`], [`∑ ANY MATHS`, `General maths`]];
+const CHIPS = isMock ? QUEST_CATEGORIES : QUEST_CATEGORIES.map((cat, k) => ({ ...cat, label: TOPIC_CHIPS[k][0], concept: TOPIC_CHIPS[k][1] }));
 export const FreeQuestScreen = ({
   goTo,
   setRobotMood
@@ -14,20 +19,27 @@ export const FreeQuestScreen = ({
     p = (0, React.useRef)(null),
     m = (0, React.useCallback)(e => {
       s(!0), setRobotMood(`thinking`), a(``);
-      let n = {
-          default: `Great question, hero! "${e}" — Here's what I know: This topic connects to many areas of learning. In essence, understanding the fundamentals will help you level up in this quest. Keep asking great questions and your knowledge XP will grow!`,
-          math: `Excellent math quest! For "${e}": Start by identifying what you know, then set up your equation. Work step by step, and always double-check your answer. Math is like unlocking a puzzle — each step reveals the next!`,
-          science: `Science quest activated! For "${e}": Science begins with observation. Form a hypothesis, test it, and analyze results. The universe is full of wonders waiting for you to discover!`,
-          history: `History scroll opened! For "${e}": History teaches us patterns. Great civilizations rose by cooperation and fell by division. Understanding the past arms you for the future!`
-        },
-        r = n[c?.toLowerCase() || `default`] ?? n.default,
-        i = 0,
+      const typeOut = r => {
+        let i = 0,
         o = setInterval(() => {
           i < r.length ? a(r.slice(0, ++i)) : (clearInterval(o), s(!1), setRobotMood(`celebrating`), f(t => [...t, {
             q: e,
             a: r
           }]), setTimeout(() => setRobotMood(`idle`), 3e3));
         }, 25);
+      };
+      if (!isMock) {
+        const concept = (CHIPS.find(x => x.label === c) || {}).concept || `General maths`;
+        askTutor(concept, e).then(typeOut, err => typeOut(`⚠ ${err.message}`));
+        return;
+      }
+      let n = {
+          default: `Great question, hero! "${e}" — Here's what I know: This topic connects to many areas of learning. In essence, understanding the fundamentals will help you level up in this quest. Keep asking great questions and your knowledge XP will grow!`,
+          math: `Excellent math quest! For "${e}": Start by identifying what you know, then set up your equation. Work step by step, and always double-check your answer. Math is like unlocking a puzzle — each step reveals the next!`,
+          science: `Science quest activated! For "${e}": Science begins with observation. Form a hypothesis, test it, and analyze results. The universe is full of wonders waiting for you to discover!`,
+          history: `History scroll opened! For "${e}": History teaches us patterns. Great civilizations rose by cooperation and fell by division. Understanding the past arms you for the future!`
+        };
+      typeOut(n[c?.toLowerCase() || `default`] ?? n.default);
     }, [c, setRobotMood]),
     h = () => {
       n.trim() && (m(n.trim()), r(``));
@@ -51,7 +63,7 @@ export const FreeQuestScreen = ({
         textShadow: `3px 3px 0 #000`
       }}>✨ FREE QUEST</h1></div><div className="w-full max-w-2xl px-4 flex flex-col gap-5"><div><p className="font-pixel text-xs mb-3" style={{
           color: `#00ffee`
-        }}>SELECT QUEST TYPE:</p><div className="flex flex-wrap gap-2">{QUEST_CATEGORIES.map(e => <button onClick={() => u(c === e.label ? null : e.label)} className="pixel-btn font-pixel text-xs border-2 border-black px-3 py-1" style={{
+        }}>SELECT QUEST TYPE:</p><div className="flex flex-wrap gap-2">{CHIPS.map(e => <button onClick={() => u(c === e.label ? null : e.label)} className="pixel-btn font-pixel text-xs border-2 border-black px-3 py-1" style={{
             background: c === e.label ? e.color : `#3d1f6e`,
             color: c === e.label ? `#000` : `#fff`,
             boxShadow: c === e.label ? `0 0 0 #000` : `3px 3px 0 #000`,

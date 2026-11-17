@@ -1,9 +1,81 @@
+import * as React from 'react';
+import { getStats, isMock } from '../api/client';
 import { DialogBox } from '../components/Dialog';
 import { WizardSprite } from '../components/Sprites';
 export const EvalMetricsScreen = ({
   goTo,
   sessionRiskScore
 }) => {
+
+  // Real mode: the player's own numbers from /api/game/stats; mock mode: the reference's.
+  const [st, setSt] = React.useState(null);
+  React.useEffect(() => { if (!isMock) getStats().then(setSt).catch(() => setSt({})); }, []);
+  const REF_CARDS = [{
+        label: `ACCURACY`,
+        value: `84%`,
+        trend: `▲`,
+        trendDir: `up`,
+        color: `#00ffee`,
+        icon: `🎯`,
+        sub: `last 20 attempts`
+      }, {
+        label: `HINT USAGE`,
+        value: `23%`,
+        trend: `▼`,
+        trendDir: `down`,
+        color: `#ffe94a`,
+        icon: `💡`,
+        sub: `of questions`
+      }, {
+        label: `AVG SPEED`,
+        value: `12.4s`,
+        trend: `▲`,
+        trendDir: `up`,
+        color: `#4aff91`,
+        icon: `⏱`,
+        sub: `per answer`
+      }, {
+        label: `MISCONCEPTIONS`,
+        value: `3`,
+        trend: `▼`,
+        trendDir: `good`,
+        color: `#ff8c1a`,
+        icon: `🧠`,
+        sub: `recurring`
+      }, {
+        label: `CONFIDENCE`,
+        value: `76%`,
+        trend: `▲`,
+        trendDir: `up`,
+        color: `#ff00cc`,
+        icon: `💪`,
+        sub: `trend upward`
+      }, {
+        label: `ESCALATIONS`,
+        value: `2`,
+        trend: `▼`,
+        trendDir: `good`,
+        color: `#ff3355`,
+        icon: `⚠️`,
+        sub: `this session`
+      }];
+  const s0 = st || {};
+  const acc = s0.rolling_accuracy, prev = s0.previous_accuracy;
+  const up = acc != null && (prev == null || acc >= prev);
+  const show = (v, f) => (v == null ? `—` : f(v));
+  const cards = isMock ? REF_CARDS : [
+    { label: `ACCURACY`, value: show(acc, v => `${Math.round(v)}%`), trend: up ? `▲` : `▼`, trendDir: up ? `up` : `down`, color: `#00ffee`, icon: `🎯`, sub: `last 20 attempts` },
+    { label: `HINT USAGE`, value: show(s0.hint_usage_pct, v => `${Math.round(v)}%`), trend: `▼`, trendDir: (s0.hint_usage_pct ?? 0) <= 25 ? `good` : `down`, color: `#ffe94a`, icon: `💡`, sub: `of questions` },
+    { label: `AVG SPEED`, value: show(s0.rolling_avg_time_ms, v => `${(v / 1000).toFixed(1)}s`), trend: `▲`, trendDir: `up`, color: `#4aff91`, icon: `⏱`, sub: `per answer` },
+    { label: `MISCONCEPTIONS`, value: `${s0.active_misconceptions ?? 0}`, trend: (s0.active_misconceptions ?? 0) ? `▲` : `▼`, trendDir: (s0.active_misconceptions ?? 0) ? `down` : `good`, color: `#ff8c1a`, icon: `🧠`, sub: `still to fix` },
+    { label: `CONFIDENCE`, value: show(s0.avg_confidence, v => `${Math.round(v)}%`), trend: `▲`, trendDir: `up`, color: `#ff00cc`, icon: `💪`, sub: `in tutor chats` },
+    { label: `ESCALATIONS`, value: `${s0.escalations ?? 0}`, trend: `▼`, trendDir: `good`, color: `#ff3355`, icon: `⚠️`, sub: `teacher check-ins` },
+  ];
+  const analysis = isMock || !st
+    ? `Overall performance is trending upward! Hint usage is decreasing which shows growing confidence. Keep monitoring misconception recurrence.`
+    : !s0.attempts ? `No answers yet. Play a lesson and your numbers will appear here.`
+    : `Accuracy over your last ${Math.min(20, s0.attempts)} answers is ${Math.round(acc)}%${prev != null ? (up ? `, up from ${Math.round(prev)}%` : `, down from ${Math.round(prev)}%`) : ``}. `
+      + (s0.active_misconceptions ? `${s0.active_misconceptions} misconception${s0.active_misconceptions > 1 ? `s are` : ` is`} still showing up; the map shows where.` : `No misconceptions are showing up right now. Nice!`);
   let n = sessionRiskScore < 33 ? {
     label: `LOW`,
     color: `#4aff91`
@@ -53,55 +125,7 @@ export const EvalMetricsScreen = ({
         }}><span>0 — LOW RISK</span><span>100 — HIGH RISK</span></div><p className="font-pixel mt-2" style={{
           fontSize: `7px`,
           color: `#aaa`
-        }}>Based on tab-switching, answer speed, and paste events</p></div></div><div className="grid grid-cols-2 gap-4 w-full max-w-2xl px-4 mb-6">{[{
-        label: `ACCURACY`,
-        value: `84%`,
-        trend: `▲`,
-        trendDir: `up`,
-        color: `#00ffee`,
-        icon: `🎯`,
-        sub: `last 20 attempts`
-      }, {
-        label: `HINT USAGE`,
-        value: `23%`,
-        trend: `▼`,
-        trendDir: `down`,
-        color: `#ffe94a`,
-        icon: `💡`,
-        sub: `of questions`
-      }, {
-        label: `AVG SPEED`,
-        value: `12.4s`,
-        trend: `▲`,
-        trendDir: `up`,
-        color: `#4aff91`,
-        icon: `⏱`,
-        sub: `per answer`
-      }, {
-        label: `MISCONCEPTIONS`,
-        value: `3`,
-        trend: `▼`,
-        trendDir: `good`,
-        color: `#ff8c1a`,
-        icon: `🧠`,
-        sub: `recurring`
-      }, {
-        label: `CONFIDENCE`,
-        value: `76%`,
-        trend: `▲`,
-        trendDir: `up`,
-        color: `#ff00cc`,
-        icon: `💪`,
-        sub: `trend upward`
-      }, {
-        label: `ESCALATIONS`,
-        value: `2`,
-        trend: `▼`,
-        trendDir: `good`,
-        color: `#ff3355`,
-        icon: `⚠️`,
-        sub: `this session`
-      }].map((e, t) => <div className="border-4 border-black p-4 slide-up" style={{
+        }}>Based on tab-switching, answer speed, and paste events</p></div></div><div className="grid grid-cols-2 gap-4 w-full max-w-2xl px-4 mb-6">{cards.map((e, t) => <div className="border-4 border-black p-4 slide-up" style={{
         background: e.color + `15`,
         boxShadow: `6px 6px 0 #000`,
         animationDelay: `${t * .05}s`
@@ -113,5 +137,5 @@ export const EvalMetricsScreen = ({
             }}>{e.icon}{" "}{e.value}</p></div><span className={`font-pixel text-sm ${e.trendDir === `up` || e.trendDir === `good` ? `trend-up` : `trend-down`}`}>{e.trend}</span></div><p className="font-pixel" style={{
           fontSize: `7px`,
           color: `#555`
-        }}>{e.sub}</p></div>)}</div><div className="flex items-end gap-4 w-full max-w-2xl px-4"><WizardSprite mood="thinking" size={.9} /><div className="flex-1"><DialogBox speaker="ANALYSIS" text="Overall performance is trending upward! Hint usage is decreasing which shows growing confidence. Keep monitoring misconception recurrence." /></div></div></div>;
+        }}>{e.sub}</p></div>)}</div><div className="flex items-end gap-4 w-full max-w-2xl px-4"><WizardSprite mood="thinking" size={.9} /><div className="flex-1"><DialogBox speaker="ANALYSIS" text={analysis} /></div></div></div>;
 };

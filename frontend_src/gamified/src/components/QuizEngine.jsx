@@ -4,6 +4,7 @@ import { answerQuestion, finishSession, isMock, startSession } from '../api/clie
 import { DialogBox } from './Dialog';
 import { PixelButton } from './PixelButton';
 import { QuestionTimer } from './QuestionTimer';
+import { HintButton } from './HintButton';
 import { WizardSprite } from './Sprites';
 export const QuizEngine = ({
   title,
@@ -110,7 +111,7 @@ export const QuizEngine = ({
       }} /><div className="flex items-end gap-4 mb-6"><div className="flex-shrink-0"><WizardSprite mood={p ? `thinking` : c ? c === K ? `celebrate` : `thinking` : `idle`} size={1.1} /></div><div className="flex-1"><DialogBox speaker="PIXEL — AI TUTOR" text={E.text} /></div></div><div className="grid grid-cols-2 gap-3 mb-4">{E.options.map(e => {
           let t = `#5b3a8e`;
           return (c || p) && (e === K ? t = `#4aff91` : e === c && (t = `#ff3355`)), <PixelButton onClick={() => ne(e)} color={t} size="md" className="w-full" disabled={!!(c || p)} key={e}>{e}</PixelButton>;
-        })}</div>{(c || p) && <div className="flex items-center gap-3 mb-4 slide-up"><WizardSprite mood={c === K ? `celebrate` : `thinking`} size={.7} /><div className="flex-1 border-4 border-black bg-white p-3" style={{
+        })}</div>{!isMock && !(c || p) && <HintButton key={E.id} questionId={E.id} />}{(c || p) && <div className="flex items-center gap-3 mb-4 slide-up"><WizardSprite mood={c === K ? `celebrate` : `thinking`} size={.7} /><div className="flex-1 border-4 border-black bg-white p-3" style={{
           boxShadow: `4px 4px 0 #000`
         }}><p className="font-body text-sm text-gray-900">{p ? `⏰ Time's up! The answer was: ${K}` : c === K ? `🎉 Correct! +1 point!` : `❌ Not quite! Answer: ${K}`}</p></div></div>}{c && c !== K || p ? <div className="flex items-start gap-3 mb-4 slide-up"><div className="text-xl" aria-hidden={!0}>🤖</div><div className="flex-1 border-4 border-black p-3" style={{
           background: `#fff7d6`,

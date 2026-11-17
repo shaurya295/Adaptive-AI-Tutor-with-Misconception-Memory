@@ -2,12 +2,30 @@ import * as React from 'react';
 import * as JSXRuntime from 'react/jsx-runtime';
 import { PixelButton } from '../components/PixelButton';
 import { COMPANIONS, LEADERBOARD, RANK_STYLES, TICKER_ITEMS } from '../data/content';
+import { getLeaderboard, isMock } from '../api/client';
+
+const avatarOf = id => COMPANIONS.find(c => c.id === id)?.emoji || `🧙`;
+const WINDOWS = { week: `7d`, alltime: `all`, friends: `all` };
 export const LeaderboardScreen = ({
   goTo,
   profiles,
   activeProfileId
 }) => {
   let [r, i] = (0, React.useState)(`alltime`);
+  // Real mode: real players from the server, ranked by XP (owner's decision G3).
+  const [entries, setEntries] = React.useState(null);
+  React.useEffect(() => {
+    if (isMock) return;
+    getLeaderboard(WINDOWS[r]).then(d => setEntries(d.entries)).catch(() => setEntries([]));
+  }, [r]);
+  const localIds = new Set(profiles.map(p => p.id));
+  const realRows = (entries || [])
+    .filter(e => r !== `friends` || e.is_me || localIds.has(e.student_id))
+    .map((e, idx) => ({ rank: idx + 1, name: e.name, xp: e.xp, streak: e.streak, badge: e.badge, avatar: avatarOf(e.avatar), isMe: e.is_me }));
+  const rows = isMock ? LEADERBOARD : realRows;
+  const ticker = isMock ? TICKER_ITEMS : realRows.length
+    ? realRows.flatMap(e => [`${e.name} has ${e.xp.toLocaleString()} XP! ⭐`, ...(e.streak > 1 ? [`${e.name} is on a ${e.streak}-day streak! 🔥`] : [])])
+    : [`Answer a question to get on the board! ⭐`];
   (0, React.useEffect)(() => {
     let e = setInterval(() => {}, 3e3);
     return () => clearInterval(e);
@@ -25,7 +43,7 @@ export const LeaderboardScreen = ({
       label: `FRIENDS`,
       color: `#4aff91`
     }],
-    o = profiles.map((e, t) => ({
+    o = !isMock ? realRows.filter(e => e.isMe).map(e => ({ ...e, isLocal: !0, isActive: !0 })) : profiles.map((e, t) => ({
       rank: 11 + t,
       name: e.name.toUpperCase(),
       xp: 1240 + t * 300,
@@ -50,7 +68,7 @@ export const LeaderboardScreen = ({
         animation: `cloudmove 8s linear infinite`,
         whiteSpace: `nowrap`,
         display: `inline-block`
-      }}>{[...TICKER_ITEMS, ...TICKER_ITEMS].map((e, t) => <span className="font-pixel text-xs mx-8" style={{
+      }}>{[...ticker, ...ticker].map((e, t) => <span className="font-pixel text-xs mx-8" style={{
           color: t % 2 == 0 ? `#ffe94a` : `#ff4fa3`
         }} key={t}>{"★ "}{e}</span>)}</div></div><div className="flex items-center gap-4 mb-6"><button onClick={() => goTo(`mainmenu`)} className="font-pixel text-xs" style={{
         color: `#ff4fa3`,
@@ -69,7 +87,7 @@ export const LeaderboardScreen = ({
         transform: r === e.key ? `translate(4px,4px)` : `none`
       }} key={e.key}>{e.label}</button>)}</div><div className="w-full max-w-lg px-4 flex flex-col gap-2"><div className="grid grid-cols-12 gap-1 font-pixel text-xs mb-2 px-2" style={{
         color: `#00ffee`
-      }}><span className="col-span-1">#</span><span className="col-span-1" /><span className="col-span-4">NAME</span><span className="col-span-3 text-right">XP</span><span className="col-span-2 text-right">🔥</span><span className="col-span-1 text-right" /></div>{LEADERBOARD.map(e => {
+      }}><span className="col-span-1">#</span><span className="col-span-1" /><span className="col-span-4">NAME</span><span className="col-span-3 text-right">XP</span><span className="col-span-2 text-right">🔥</span><span className="col-span-1 text-right" /></div>{rows.map(e => {
         let t = RANK_STYLES[e.rank];
         return <div className="grid grid-cols-12 gap-1 items-center border-4 border-black px-2 py-2" style={{
           background: t ? t.bg + `33` : `#3d1f6e`,

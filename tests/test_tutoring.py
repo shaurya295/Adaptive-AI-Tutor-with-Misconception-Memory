@@ -125,3 +125,12 @@ def test_model_outage_is_not_marked_against_the_student(client, monkeypatch):
     profile = client.get("/api/profile").json()["profile"]                 # no id needed: it is your own
     assert "Fractions" not in profile["concept_mastery"] and profile["recent_attempts"] == []
     assert _chat(client, sid, "   ").status_code == 400
+
+
+def test_explain_only_never_opens_a_problem(client):
+    sid = "freequest@example.com"
+    sign_in(client, sid)
+    r = client.post("/api/chat", json={"concept": "Fractions", "message": "What is a fraction?", "explain_only": True}).json()
+    assert r["active_question"] is None and "Try this" not in r["reply"]
+    again = client.post("/api/chat", json={"concept": "Fractions", "message": "2/6", "explain_only": True}).json()
+    assert again["hint_ladder"] == {"kind": "none"} and again["active_question"] is None      # explained, not graded

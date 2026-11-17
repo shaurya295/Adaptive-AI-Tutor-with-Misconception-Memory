@@ -107,3 +107,9 @@ export async function getProfile(studentId) {
   return api('/api/profile');
 }
 export const getLeaderboard = (window = 'all') => api(`/api/game/leaderboard?window=${window}`);
+
+// Free Quest: ask the tutor anything; the answer is an explanation, never a graded problem.
+export async function askTutor(concept, question) {
+  const res = await api('/api/chat', { method: 'POST', body: { concept, message: question, explain_only: true } });
+  return res.reply.replace(/\*\*/g, '');
+}

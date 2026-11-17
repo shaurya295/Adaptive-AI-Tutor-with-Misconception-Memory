@@ -61,6 +61,7 @@ class ChatBody(BaseModel):
     student_id: Optional[str] = None
     concept: str
     message: str
+    explain_only: bool = False      # Free Quest: answer the question, never start or grade a practice problem
 
 
 class QuizStartBody(BaseModel):
@@ -277,7 +278,7 @@ def chat(body: ChatBody, caller: Caller = Depends(current_caller)) -> dict[str, 
         time.time() - session.last_tutor_message_at if session.last_tutor_message_at is not None else None
     )
     profile = load_student_profile(body.student_id)
-    active = session.active.get(body.concept)
+    active = None if body.explain_only else session.active.get(body.concept)
     escalated = False
     hint_ladder: dict[str, Any] = {"kind": "none"}
 
@@ -285,7 +286,7 @@ def chat(body: ChatBody, caller: Caller = Depends(current_caller)) -> dict[str, 
         if active is None:
             result = run_explain(current_concept=body.concept, student_question=message, student_memory_profile=profile)
             reply = result["hint_text"]
-            question = _start_practice(session, body.concept)
+            question = None if body.explain_only else _start_practice(session, body.concept)
             if question:
                 reply += f"\n\n**Try this:** {question}"
         else:

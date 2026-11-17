@@ -20,6 +20,8 @@ Each entry needs the project owner's sign-off.
 | G4 | Lesson topic | No topic picker; START LESSON starts | The tutor picks (a topic due for review first, otherwise the weakest). The student can still choose via REVIEW NOW, the misconception map, or the Free Quest chips. |
 | G6 | Reward screen | Always "FRACTIONS MASTER" | Shows the latest badge really earned; with none yet, "NEXT BADGE · TOPIC MASTER · Reach 70% mastery in any topic". Proposed by Claude. |
 | G7 | Progress tip | "You're on a streak! …PHOENIX badge…" whatever the data | Says the real streak, or how to start one. Proposed by Claude. |
+| G8 | Switch student | Lists every player made on the device and switches between them | Shows the signed-in player; ➕ ADD NEW PLAYER signs out and starts a new hero. Guest players have no password, so switching into someone else's account would let anyone on the laptop use it. Proposed by Claude. |
+| G9 | Eval metrics (game) | Fixed numbers, "CONFIDENCE … trend upward" | The player's own numbers; confidence comes from tutor chats (the game's multiple-choice answers do not measure it), shown as — until there is a chat. Proposed by Claude. |
 | G5 | Free Quest chips | MATH, SCIENCE, HISTORY, ENGLISH, ART, CODE | Relabelled to the five maths topics plus ANY MATHS (same colours and layout). Proposed by Claude; owner may veto. |
 
 
