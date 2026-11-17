@@ -17,7 +17,11 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from backend.memory.misconception_graph import get_all_concepts, get_all_edges, get_prerequisites
-from backend.memory.neo4j_client import is_available
+
+
+def is_available() -> bool:
+    """The prerequisite graph ships with the app (backend/content/concepts.json), so it is always there."""
+    return True
 
 # Fill colors, in priority order (checked top to bottom per node).
 _COLOR_WEAK = "#f4a29e"          # red/orange — flagged weak prerequisite
