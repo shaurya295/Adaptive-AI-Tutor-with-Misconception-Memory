@@ -64,7 +64,7 @@ def run_escalation(state: dict) -> dict:
         trigger = f"Student sounds upset or ready to give up, after {misses} consecutive miss(es)"
     else:
         trigger_type = "Repeated failure"
-        trigger = f"{misses + 1} consecutive misses on {concept}"
+        trigger = f"Still stuck on {concept} after {misses} consecutive misses"
 
     answer = " ".join((state.get("student_response") or "").split())[:120]
     parts = [f"{trigger}.", f'Question: {state.get("current_question") or "(none)"}', f'Last answer: "{answer}".']

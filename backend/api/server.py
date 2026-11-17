@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -147,13 +148,13 @@ _METRIC_LABELS = {
     "memory_usefulness": "Memory usefulness",
     "hint_quality": "Hint quality",
 }
-_METRIC_DESCRIPTIONS = {
-    "learning_gain": "Average pre-test to post-test score change across completed rounds.",
-    "misconception_recall": "How often a recurring misconception is correctly recognized as one already seen.",
-    "adaptation_quality": "How often the hint ladder escalates (never regresses) as misses build up.",
-    "escalation_precision": "Of turns escalated to a teacher, the fraction that were actually warranted.",
-    "memory_usefulness": "Mastery gain on turns with prior history, vs. a first attempt.",
-    "hint_quality": "Of hint-ladder turns, the fraction whose very next attempt succeeded.",
+_METRIC_DESCRIPTIONS = {   # worded exactly as on the reference's Eval metrics screen
+    "learning_gain": "Avg. pre-test → post-test percentage-point change this session.",
+    "misconception_recall": "Share of flagged prerequisite gaps the system correctly recognized as already-known.",
+    "adaptation_quality": "Share of post-miss turns where hint strength held steady or escalated, never regressed.",
+    "escalation_precision": "Share of teacher-reviewed escalations confirmed as warranted.",
+    "memory_usefulness": "Correctness-rate change, second half vs. first half of each concept's attempts this session.",
+    "hint_quality": "Share of hint-ladder turns generated cleanly, without the answer-leak guard intervening.",
 }
 
 
@@ -174,18 +175,21 @@ def _fmt_metric(key: str, metric: dict[str, Any]) -> dict[str, Any]:
 
 
 def _escalation_row(row: dict[str, Any]) -> dict[str, Any]:
-    if row.get("cheating_risk_detected"):
-        trigger_type = "Cheating risk"
-    elif row.get("distress_detected"):
-        trigger_type = "Distress"
-    else:
-        trigger_type = "Repeated failure"
-    trigger = row.get("teacher_summary") or f"{trigger_type} on {row['concept']}"
+    trigger_type = row.get("trigger_type")
+    if not trigger_type:   # rows logged before trigger_type existed
+        trigger_type = (
+            "Cheating risk" if row.get("cheating_risk_detected")
+            else "Distress" if row.get("distress_detected")
+            else "Repeated failure"
+        )
+    created = row["created_at"]
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
     return {
         "id": row["id"],
-        "time": row["created_at"].strftime("%H:%M"),
+        "time": created.astimezone().strftime("%d %b %H:%M"),
         "topic": row["concept"],
-        "trigger": trigger[:200],
+        "trigger": (row.get("teacher_summary") or f"{trigger_type} on {row['concept']}")[:300],
         "misses": row.get("consecutive_misses_before", 0),
         "trigger_type": trigger_type,
         "warranted": row.get("warranted"),

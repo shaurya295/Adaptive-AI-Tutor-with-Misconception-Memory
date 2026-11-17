@@ -169,8 +169,8 @@ def run_tutor_planner(state: dict) -> dict:
     else:
         curriculum = ""
         try:
-            if llm.is_fake():
-                raise RuntimeError("curriculum lookup is skipped when the model is faked")
+            if llm.is_fake():   # tests and demos: no embedding model to call
+                raise LookupError
             from backend.rag.retriever import get_curriculum_context
 
             curriculum = (
@@ -181,6 +181,8 @@ def run_tutor_planner(state: dict) -> dict:
                 )
                 or ""
             )[:700]
+        except LookupError:
+            pass
         except Exception as exc:  # noqa: BLE001 - curriculum notes are a bonus, never a blocker
             logger.warning("Curriculum lookup failed: %s", exc)
         misses = ((profile.get("concept_mastery") or {}).get(current_concept) or {}).get("consecutive_misses", 0)

@@ -1,19 +1,24 @@
 """
 metrics.py
 ----------
-Computes the six judging metrics named in the hackathon problem statement —
-learning gain, misconception recall, adaptation quality, escalation
-precision, memory usefulness, hint quality — purely from data the system
-already logs (backend/memory/eval_store.py's interaction_log,
-backend/memory/quiz_store.py's quiz_attempts). No LLM calls: every metric
-here is deterministic math over structured fields already written by
-backend/memory/student_profile.py's run_memory_update, so results are
-reproducible and cheap to recompute live during a demo.
+The six evaluation metrics on the teacher's "Eval metrics" screen, each
+computed exactly as the screen describes it. Pure functions over the turn log
+(backend/memory/eval_store.interaction_log) and the quiz attempts
+(backend/memory/quiz_store); no model calls.
 
-Each compute_* function returns {"value": float | None, "sample_size": int,
-"label": str} — value is None when sample_size is 0, so callers (the
-Teacher Dashboard in app.py) can show "not enough data yet" instead of a
-misleading number.
+Each returns {"value": float | None, "sample_size": int, "label": str}.
+value is None when there is not enough data yet.
+
+1. Learning gain          mean (post-test % - pre-test %) over finished rounds
+2. Misconception recall   of turns that flagged a prerequisite gap, the share where
+                          that gap was already on the student's record
+3. Adaptation quality     of hint turns that follow a hint turn on the same concept,
+                          the share whose hint strength held steady or rose
+4. Escalation precision   of escalations a teacher has reviewed, the share marked warranted
+5. Memory usefulness      per concept with 4+ graded turns: correct rate in the later
+                          half minus the earlier half, averaged over concepts
+6. Hint quality           of hint turns, the share written without the answer-leak
+                          guard stepping in
 """
 
 from __future__ import annotations
@@ -21,22 +26,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, Optional
 
-from backend.agents.orchestrator import ESCALATION_MISS_THRESHOLD
 from backend.memory.eval_store import get_interactions
 from backend.memory.quiz_store import get_all_rounds
-
-# Mirrors the hint ladder's severity ordering (diagnostic_agent.py's
-# InstructionalStrategy). "none" (praise/correct turns) ranks lowest since
-# it means no intervention was needed at all.
-_STRATEGY_SEVERITY = {
-    "none": -1,
-    "retry_prompt": 0,
-    "small_clue": 1,
-    "stronger_hint": 2,
-    "worked_example": 3,
-    "prerequisite_review": 3,
-    "escalate_to_teacher": 4,
-}
 
 
 def _metric(value: Optional[float], sample_size: int, label: str) -> dict[str, Any]:
@@ -44,167 +35,76 @@ def _metric(value: Optional[float], sample_size: int, label: str) -> dict[str, A
 
 
 def learning_gain(student_id: Optional[str] = None) -> dict[str, Any]:
-    """Mean(post_score - pre_score) across every completed pre/post-test round."""
-    rounds = get_all_rounds(student_id)
     gains = [
         r["post_score"] - r["pre_score"]
-        for r in rounds
-        if r["pre_score"] is not None and r["post_score"] is not None
+        for r in get_all_rounds(student_id)
+        if r.get("pre_score") is not None and r.get("post_score") is not None
     ]
     value = sum(gains) / len(gains) if gains else None
-    return _metric(value, len(gains), "Learning gain (pre-test -> post-test)")
+    return _metric(value, len(gains), "Avg. post-test minus pre-test score per finished round")
 
 
-def misconception_recall(student_id: Optional[str] = None) -> dict[str, Any]:
-    """
-    Fraction of repeated misconceptions (same student+concept) that the
-    diagnostic agent correctly re-identifies as one already seen, rather
-    than treating every recurrence as brand new — the core "misconception
-    memory" claim of this project.
-    """
-    rows = get_interactions(student_id)
-    seen: dict[tuple[str, str], set[str]] = defaultdict(set)
-    hits = 0
-    total = 0
-    for row in rows:
-        misconception = row.get("identified_misconception")
-        if not misconception:
+def misconception_recall(student_id: Optional[str] = None, rows: Optional[list] = None) -> dict[str, Any]:
+    rows = rows if rows is not None else get_interactions(student_id)
+    flagged = [r for r in rows if r.get("missing_prerequisite") and r.get("prereq_known_before") is not None]
+    value = sum(1 for r in flagged if r["prereq_known_before"]) / len(flagged) if flagged else None
+    return _metric(value, len(flagged), "Flagged prerequisite gaps already on record")
+
+
+def adaptation_quality(student_id: Optional[str] = None, rows: Optional[list] = None) -> dict[str, Any]:
+    rows = rows if rows is not None else get_interactions(student_id)
+    last_level: dict[tuple, int] = {}
+    held = total = 0
+    for r in rows:                                   # oldest first
+        key = (r["student_id"], r["concept"])
+        if r["path"] != "hint" or r.get("hint_level") is None:
+            if r["path"] != "hint":
+                last_level.pop(key, None)            # a correct answer or a hand-off ends the run of hints
             continue
-        key = (row["student_id"], row["concept"])
-        normalized = misconception.strip().lower()
-        if seen[key]:
+        if key in last_level:
             total += 1
-            if normalized in seen[key]:
-                hits += 1
-        seen[key].add(normalized)
-    value = hits / total if total else None
-    return _metric(value, total, "Misconception recall")
+            held += r["hint_level"] >= last_level[key]
+        last_level[key] = r["hint_level"]
+    return _metric(held / total if total else None, total, "Post-miss hints that held or raised their strength")
 
 
-def adaptation_quality(student_id: Optional[str] = None) -> dict[str, Any]:
-    """
-    Fraction of consecutive same-concept turns, during a building miss
-    streak, where the hint ladder's strategy severity did not regress vs.
-    the previous turn — does the tutor escalate its intervention as misses
-    pile up, rather than getting stuck or backsliding.
-    """
-    rows = get_interactions(student_id)
-    by_key: dict[tuple[str, str], list[dict]] = defaultdict(list)
-    for row in rows:
-        by_key[(row["student_id"], row["concept"])].append(row)
-
-    held_or_improved = 0
-    total = 0
-    for turns in by_key.values():
-        for prev, curr in zip(turns, turns[1:]):
-            if curr["consecutive_misses_before"] <= prev["consecutive_misses_before"]:
-                continue  # miss streak reset or not building - not an escalation moment
-            prev_sev = _STRATEGY_SEVERITY.get(prev.get("applied_strategy"), 0)
-            curr_sev = _STRATEGY_SEVERITY.get(curr.get("applied_strategy"), 0)
-            total += 1
-            if curr_sev >= prev_sev:
-                held_or_improved += 1
-    value = held_or_improved / total if total else None
-    return _metric(value, total, "Adaptation quality (hint ladder escalates with misses)")
+def escalation_precision(student_id: Optional[str] = None, rows: Optional[list] = None) -> dict[str, Any]:
+    rows = rows if rows is not None else get_interactions(student_id)
+    reviewed = [r for r in rows if r["escalated"] and r.get("warranted") is not None]
+    value = sum(1 for r in reviewed if r["warranted"]) / len(reviewed) if reviewed else None
+    return _metric(value, len(reviewed), "Teacher-reviewed escalations marked warranted")
 
 
-def escalation_precision(student_id: Optional[str] = None) -> dict[str, Any]:
-    """
-    Of every turn that escalated to a teacher, the fraction that were
-    actually warranted per the deterministic gate (consecutive_misses at or
-    above threshold, distress detected, or cheating risk detected) —
-    validates orchestrator.route_after_diagnosis against real logged turns
-    instead of just asserting it by construction.
-    """
-    rows = [r for r in get_interactions(student_id) if r.get("escalated")]
-    justified = sum(
-        1
-        for r in rows
-        if r["consecutive_misses_before"] >= ESCALATION_MISS_THRESHOLD
-        or r.get("distress_detected")
-        or r.get("cheating_risk_detected")
-    )
-    value = justified / len(rows) if rows else None
-    return _metric(value, len(rows), "Escalation precision")
+def memory_usefulness(student_id: Optional[str] = None, rows: Optional[list] = None) -> dict[str, Any]:
+    rows = rows if rows is not None else get_interactions(student_id)
+    by_concept: dict[tuple, list[bool]] = defaultdict(list)
+    for r in rows:
+        if r.get("answer_correct") is not None:
+            by_concept[(r["student_id"], r["concept"])].append(bool(r["answer_correct"]))
+    changes = []
+    for results in by_concept.values():
+        if len(results) >= 4:
+            half = len(results) // 2
+            early, late = results[:half], results[-half:]
+            changes.append(sum(late) / len(late) - sum(early) / len(early))
+    value = sum(changes) / len(changes) if changes else None
+    return _metric(value, len(changes), "Correct-rate change, later vs earlier attempts per concept")
 
 
-def memory_usefulness(student_id: Optional[str] = None) -> dict[str, Any]:
-    """
-    Mean mastery gain per turn for turns where the student already had
-    history on that concept (consecutive_misses_before > 0, i.e. the memory
-    profile had something to work with), reported alongside the same
-    average for a student's very first attempt on a concept — shows
-    whether the tutor's memory of past struggles correlates with faster
-    progress compared to a cold start.
-    """
-    rows = get_interactions(student_id)
-    with_history = [
-        r["mastery_after"] - r["mastery_before"] for r in rows if r["consecutive_misses_before"] > 0
-    ]
-    first_attempt = [
-        r["mastery_after"] - r["mastery_before"] for r in rows if r["consecutive_misses_before"] == 0
-    ]
-
-    value = sum(with_history) / len(with_history) if with_history else None
-    baseline = sum(first_attempt) / len(first_attempt) if first_attempt else None
-    metric = _metric(value, len(with_history), "Memory usefulness (mastery gain with prior history)")
-    metric["baseline_value"] = baseline
-    metric["baseline_sample_size"] = len(first_attempt)
-    return metric
-
-
-def hint_quality(student_id: Optional[str] = None) -> dict[str, Any]:
-    """
-    Fraction of hint-ladder turns whose chronologically next turn on the
-    same student+concept produced a positive mastery signal — did the hint
-    actually help the student succeed on their next try.
-    """
-    rows = get_interactions(student_id)
-    by_key: dict[tuple[str, str], list[dict]] = defaultdict(list)
-    for row in rows:
-        by_key[(row["student_id"], row["concept"])].append(row)
-
-    worked = 0
-    total = 0
-    for turns in by_key.values():
-        for curr, nxt in zip(turns, turns[1:]):
-            if curr["path"] != "hint":
-                continue
-            total += 1
-            if nxt.get("mastery_signal"):
-                worked += 1
-    value = worked / total if total else None
-    return _metric(value, total, "Hint quality (next attempt succeeds)")
+def hint_quality(student_id: Optional[str] = None, rows: Optional[list] = None) -> dict[str, Any]:
+    rows = rows if rows is not None else get_interactions(student_id)
+    hints = [r for r in rows if r["path"] == "hint" and r.get("leak_guard_triggered") is not None]
+    value = sum(1 for r in hints if not r["leak_guard_triggered"]) / len(hints) if hints else None
+    return _metric(value, len(hints), "Hints written without the answer-leak guard intervening")
 
 
 def compute_all_metrics(student_id: Optional[str] = None) -> dict[str, dict[str, Any]]:
-    """Returns all six metrics keyed by name, ready for the Teacher Dashboard."""
+    rows = get_interactions(student_id)
     return {
         "learning_gain": learning_gain(student_id),
-        "misconception_recall": misconception_recall(student_id),
-        "adaptation_quality": adaptation_quality(student_id),
-        "escalation_precision": escalation_precision(student_id),
-        "memory_usefulness": memory_usefulness(student_id),
-        "hint_quality": hint_quality(student_id),
+        "misconception_recall": misconception_recall(rows=rows),
+        "adaptation_quality": adaptation_quality(rows=rows),
+        "escalation_precision": escalation_precision(rows=rows),
+        "memory_usefulness": memory_usefulness(rows=rows),
+        "hint_quality": hint_quality(rows=rows),
     }
-
-
-# --------------------------------------------------------------------------- #
-# Standalone test
-# --------------------------------------------------------------------------- #
-
-if __name__ == "__main__":
-    """
-    $ python -m backend.evals.metrics
-
-    Reads whatever is already in the local database. Run
-    `python -m backend.agents.orchestrator` first (its 5-scenario
-    __main__ block exercises praise/hint/escalation paths through
-    run_memory_update) to populate real interaction_log rows, or use the
-    live Streamlit app.
-    """
-    import json
-
-    print("=" * 80)
-    print(json.dumps(compute_all_metrics(), indent=2))
-    print("=" * 80)

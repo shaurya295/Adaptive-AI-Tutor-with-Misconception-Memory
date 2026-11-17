@@ -43,7 +43,9 @@ logging.basicConfig(level=logging.INFO)
 
 DEFAULT_MASTERY = 0.3
 MASTERY_INCREMENT = 0.15
-MASTERY_DECREMENT = 0.05   # a miss lowers mastery a little; it never drops below 0
+MASTERY_DECREMENT = 0.05
+# Strength of each hint, used to check the ladder never steps down after a miss.
+_HINT_LEVELS = {"retry_prompt": 1, "small_clue": 1, "stronger_hint": 2, "prerequisite_review": 3, "worked_example": 3}   # a miss lowers mastery a little; it never drops below 0
 MAX_RECENT_ATTEMPTS = 10
 
 
@@ -101,7 +103,8 @@ def run_memory_update(state: dict) -> dict:
         concept_entry["consecutive_misses"] = 0
 
     missing_prereq = diagnostic_result.get("missing_prerequisite")
-    if missing_prereq and missing_prereq not in profile["weak_prerequisites"]:
+    prereq_known_before = bool(missing_prereq) and missing_prereq in profile["weak_prerequisites"]
+    if missing_prereq and not prereq_known_before:
         profile["weak_prerequisites"].append(missing_prereq)
 
     profile["recent_attempts"].append({"concept": current_concept, "correct": was_correct})
@@ -152,6 +155,12 @@ def run_memory_update(state: dict) -> dict:
             identified_misconception=diagnostic_result.get("identified_misconception"),
             applied_strategy=applied_strategy,
             teacher_summary=state.get("teacher_summary"),
+            answer_correct=was_correct,
+            missing_prerequisite=missing_prereq,
+            prereq_known_before=prereq_known_before if missing_prereq else None,
+            leak_guard_triggered=bool(tutor_plan_result.get("leak_guard_triggered")) if path == "hint" else None,
+            hint_level=_HINT_LEVELS.get(applied_strategy or "", 0) if path == "hint" else None,
+            trigger_type=(state.get("escalation_result") or {}).get("trigger_type") if escalated else None,
         )
     else:
         logger.warning("No student_id in state or profile — skipping Neo4j persistence.")
