@@ -28,7 +28,8 @@ export const PostTestScreen = ({
   preScore,
   preTotal,
   onComplete,
-  onUpdateRisk
+  onUpdateRisk,
+  onClaimReward
 }) => {
   let [a, o] = (0, React.useState)(!1),
     [s, c] = (0, React.useState)(0),
@@ -83,5 +84,5 @@ export const PostTestScreen = ({
         boxShadow: `4px 4px 0 #000`
       }}><p className="font-pixel text-xs" style={{
           color: h >= 0 ? `#4aff91` : `#ff3355`
-        }}>{h >= 0 ? `🎉` : `📚`}{" LEARNING GAIN: "}{h >= 0 ? `+` : ``}{h}%</p></div></div><WizardSprite mood={h >= 0 ? `celebrate` : `thinking`} size={1.3} className="animate-float" /><div className="mt-6"><PixelButton onClick={() => {}} color="#ff00cc" size="lg" glow={!0}>▶ CLAIM REWARD</PixelButton></div></div>;
+        }}>{h >= 0 ? `🎉` : `📚`}{" LEARNING GAIN: "}{h >= 0 ? `+` : ``}{h}%</p></div></div><WizardSprite mood={h >= 0 ? `celebrate` : `thinking`} size={1.3} className="animate-float" /><div className="mt-6"><PixelButton onClick={() => onClaimReward?.()} color="#ff00cc" size="lg" glow={!0}>▶ CLAIM REWARD</PixelButton></div></div>;
 };

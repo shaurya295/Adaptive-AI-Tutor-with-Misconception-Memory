@@ -25,6 +25,7 @@ export const SCREEN_FLOW = [`landing`, `signin`, `mainmenu`, `welcome`, `avatars
 export function App() {
   let [e, t] = (0, React.useState)(initialScreen(`landing`)),
     hud = useHud(),
+    newPlayer = React.useRef(true),          // first time this name signs in -> onboarding (welcome, avatar)
     n = hud.coins,
     r = hud.xp_pct,
     [dueCount, setDueCount] = React.useState(isMock ? 2 : 0),
@@ -72,6 +73,7 @@ export function App() {
     te = ![`landing`, `signin`].includes(e),
     ne = e => {
       d(e);
+      newPlayer.current = !isMock || !a.find(x => x.name.toLowerCase() === e.toLowerCase());
       if (!isMock) {
         guestSignIn(e).then(res => {
           o(r => [...r.filter(x => x.id !== res.student_id), { id: res.student_id, name: e, avatarId: f }]);
@@ -108,7 +110,7 @@ export function App() {
     background: `#1a0a2e`
   }}>{te && <Hud coins={n} level={hud.level} xp={r} goTo={D} playerName={u} />}<div style={{
       paddingTop: te ? 48 : 0
-    }}>{e === `landing` && <LandingScreen next={E} />}{e === `signin` && <SignInScreen next={E} back={() => t(`landing`)} onSetName={ne} />}{e === `mainmenu` && <MainMenuScreen goTo={D} />}{e === `welcome` && <WelcomeScreen next={E} />}{e === `avatarselect` && <AvatarSelectScreen next={E} onSelect={O} />}{e === `howitworks` && <HowItWorksScreen next={E} />}{e === `pretest` && <PreTestScreen studentId={k} onComplete={ie} onUpdateRisk={ee} />}{e === `lesson` && <LessonScreen next={E} studentId={k} onWrongStreak={w} onUpdateRisk={ee} />}{e === `posttest` && <PostTestScreen studentId={k} preScore={m} preTotal={g} onComplete={oe} onUpdateRisk={ee} />}{e === `progress` && <ProgressScreen next={E} studentId={k} />}{e === `sessioncomplete` && <SessionCompleteScreen next={E} />}{e === `reward` && <RewardScreen goTo={D} />}{e === `freequest` && <FreeQuestScreen goTo={D} setRobotMood={i} />}{e === `leaderboard` && <LeaderboardScreen goTo={D} profiles={a} activeProfileId={s} />}{e === `evalmetrics` && <EvalMetricsScreen goTo={D} sessionRiskScore={S} />}{e === `misconceptions` && <MisconceptionsScreen goTo={D} studentId={k} />}{e === `spacedrepeat` && <SpacedReviewScreen goTo={D} studentId={k} />}{e === `switchstudent` && <SwitchStudentScreen goTo={D} profiles={isMock ? a : a.filter(x => x.id === s)} activeProfileId={s} onSwitch={e => {
+    }}>{e === `landing` && <LandingScreen next={E} />}{e === `signin` && <SignInScreen next={() => t(newPlayer.current ? `welcome` : `mainmenu`)} back={() => t(`landing`)} onSetName={ne} />}{e === `mainmenu` && <MainMenuScreen goTo={D} />}{e === `welcome` && <WelcomeScreen next={E} />}{e === `avatarselect` && <AvatarSelectScreen next={E} onSelect={O} />}{e === `howitworks` && <HowItWorksScreen next={E} />}{e === `pretest` && <PreTestScreen studentId={k} onComplete={ie} onUpdateRisk={ee} />}{e === `lesson` && <LessonScreen next={E} studentId={k} onWrongStreak={w} onUpdateRisk={ee} />}{e === `posttest` && <PostTestScreen studentId={k} preScore={m} preTotal={g} onComplete={oe} onUpdateRisk={ee} onClaimReward={() => D(`sessioncomplete`)} />}{e === `progress` && <ProgressScreen next={E} studentId={k} />}{e === `sessioncomplete` && <SessionCompleteScreen next={E} />}{e === `reward` && <RewardScreen goTo={D} />}{e === `freequest` && <FreeQuestScreen goTo={D} setRobotMood={i} />}{e === `leaderboard` && <LeaderboardScreen goTo={D} profiles={a} activeProfileId={s} />}{e === `evalmetrics` && <EvalMetricsScreen goTo={D} sessionRiskScore={S} />}{e === `misconceptions` && <MisconceptionsScreen goTo={D} studentId={k} />}{e === `spacedrepeat` && <SpacedReviewScreen goTo={D} studentId={k} />}{e === `switchstudent` && <SwitchStudentScreen goTo={D} profiles={isMock ? a : a.filter(x => x.id === s)} activeProfileId={s} onSwitch={e => {
         c(e);
         let t = a.find(t => t.id === e);
         t && d(t.name);

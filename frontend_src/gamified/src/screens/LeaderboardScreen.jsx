@@ -65,7 +65,7 @@ export const LeaderboardScreen = ({
       background: `#1a0a2e`,
       padding: `6px 0`
     }}><div style={{
-        animation: `cloudmove 8s linear infinite`,
+        animation: `tickerscroll 16s linear infinite`,
         whiteSpace: `nowrap`,
         display: `inline-block`
       }}>{[...ticker, ...ticker].map((e, t) => <span className="font-pixel text-xs mx-8" style={{
