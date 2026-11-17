@@ -215,10 +215,6 @@
   .graph-legend{ display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; font-size:.74rem; color:var(--ink-muted); }
   .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:5px; }
 
-  .review-table{ width:100%; border-collapse:collapse; font-size:.84rem; }
-  .review-table th{ text-align:left; font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-muted); padding:6px 8px; border-bottom:1px solid var(--line); }
-  .review-table td{ padding:8px; border-bottom:1px solid var(--line); }
-
   .escalation-list{ display:flex; flex-direction:column; gap:10px; }
   .escalation-row{ display:flex; gap:12px; align-items:flex-start; border:1px solid var(--line); border-radius:11px; padding:12px 14px; background:var(--paper-raised); position:relative; overflow:hidden; }
   .escalation-row::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px; }
@@ -365,7 +361,7 @@
       <div class="screen-header">
         <div class="eyebrow">Teacher · Screen 1 of 5</div>
         <h1 class="screen-title">Look up a student</h1>
-        <p class="screen-sub">Mastery and prerequisites are read live from Neo4j by student email, so this works for any student who has ever signed in.</p>
+        <p class="screen-sub">Mastery and prerequisites are read live from the tutor's memory store by student email, so this works for any student who has ever signed in.</p>
       </div>
 
       <div class="roster-toolbar">
@@ -375,8 +371,7 @@
 
       <div id="lookupResult"></div>
 
-      <div id="scheduleArea" style="margin-top:20px;"></div>
-    </section>
+      </section>
 
     <!-- ======================= T2 — EVAL METRICS ======================= -->
     <section class="screen" id="t2">
@@ -393,7 +388,7 @@
       <div class="screen-header">
         <div class="eyebrow">Teacher · Screen 3 of 5</div>
         <h1 class="screen-title">Misconception graph explorer</h1>
-        <p class="screen-sub">Prerequisite structure from the Neo4j REQUIRES graph, with the selected student's mastery overlaid.</p>
+        <p class="screen-sub">Prerequisite structure from the prerequisite graph, with the selected student's mastery overlaid.</p>
       </div>
 
       <div class="roster-toolbar">
@@ -856,7 +851,6 @@
     api('/api/profile?' + qs({student_id: email})).then(function(res){
       state.lookedUpStudentId = email;
       renderLookupResult(res);
-      loadScheduleTable();
     }).catch(function(err){
       document.getElementById('lookupResult').innerHTML = '<p class="empty-state">' + esc(err.message) + '</p>';
     });
@@ -889,20 +883,6 @@
       '<div class="row wrap" style="margin-top:14px;">' + (res.profile.weak_prerequisites || []).map(function(w){
         return '<span class="chip chip-terracotta" style="margin:3px 6px 3px 0;">' + esc(w) + '</span>';
       }).join('') + '</div>';
-  }
-  function loadScheduleTable(){
-    var el = document.getElementById('scheduleArea');
-    if (!state.lookedUpStudentId){ el.innerHTML = ''; return; }
-    api('/api/schedule?' + qs({student_id: state.lookedUpStudentId})).then(function(res){
-      var rows = res.schedule || [];
-      if (!rows.length){ el.innerHTML = ''; return; }
-      el.innerHTML = '<div class="card"><div class="card-title">📅 Spaced Repetition Schedule</div>' +
-        '<table class="review-table"><thead><tr><th>Concept</th><th>Mastery at schedule</th><th>Next review</th></tr></thead><tbody>' +
-        rows.map(function(r){
-          return '<tr><td>' + esc(r.concept) + '</td><td>' + Math.round((r.mastery_at_schedule || 0) * 100) + '%</td>' +
-            '<td>' + esc((r.next_review_at || '').slice(0, 10)) + '</td></tr>';
-        }).join('') + '</tbody></table></div>';
-    });
   }
 
   // ===================================================================
