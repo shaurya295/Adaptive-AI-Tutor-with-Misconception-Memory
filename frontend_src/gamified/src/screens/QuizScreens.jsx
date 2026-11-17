@@ -3,11 +3,26 @@ import { PixelButton } from '../components/PixelButton';
 import { QuizEngine } from '../components/QuizEngine';
 import { WizardSprite } from '../components/Sprites';
 import { POSTTEST_QUESTIONS, PRETEST_QUESTIONS } from '../data/content';
+import { isMock, loadQuiz } from '../api/client';
+
+// Mock mode starts with the reference's questions; real mode loads them from the server.
+function useQuiz(variant) {
+  const [questions, setQuestions] = React.useState(isMock ? (variant === 'pre' ? PRETEST_QUESTIONS : POSTTEST_QUESTIONS) : null);
+  const [error, setError] = React.useState(null);
+  React.useEffect(() => { if (!isMock) loadQuiz(variant).then(setQuestions).catch(e => setError(e.message)); }, [variant]);
+  return { questions, error };
+}
+
+const Loading = ({ text }) => <div className="game-screen scanlines" style={{ background: `linear-gradient(to bottom, #2a1050, #3d1f6e)`, display: `flex`, alignItems: `center`, justifyContent: `center` }}><p className="font-pixel text-xs" style={{ color: `#00ffee` }}>{text}</p></div>;
 export const PreTestScreen = ({
   studentId,
   onComplete,
   onUpdateRisk
-}) => <QuizEngine title="📋 PRE-TEST" questions={PRETEST_QUESTIONS} studentId={studentId} onComplete={onComplete} timeLimitSec={30} onUpdateRisk={onUpdateRisk} />;
+}) => {
+  const { questions, error } = useQuiz('pre');
+  if (!questions) return <Loading text={error ? `⚠ ${error}` : 'LOADING...'} />;
+  return <QuizEngine title="📋 PRE-TEST" questions={questions} studentId={studentId} onComplete={onComplete} timeLimitSec={30} onUpdateRisk={onUpdateRisk} sessionKind="pretest" />;
+};
 export const PostTestScreen = ({
   studentId,
   preScore,
@@ -17,11 +32,13 @@ export const PostTestScreen = ({
 }) => {
   let [a, o] = (0, React.useState)(!1),
     [s, c] = (0, React.useState)(0),
+    { questions, error } = useQuiz('post'),
     [u, d] = (0, React.useState)(POSTTEST_QUESTIONS.length),
     f = (e, t) => {
       c(e), d(t), o(!0), onComplete(e, t);
     };
-  if (!a) return <QuizEngine title="🏁 POST-TEST" questions={POSTTEST_QUESTIONS} studentId={studentId} onComplete={f} timeLimitSec={30} onUpdateRisk={onUpdateRisk} />;
+  if (!a && !questions) return <Loading text={error ? `⚠ ${error}` : 'LOADING...'} />;
+  if (!a) return <QuizEngine title="🏁 POST-TEST" questions={questions} studentId={studentId} onComplete={f} timeLimitSec={30} onUpdateRisk={onUpdateRisk} sessionKind="posttest" />;
   let p = preScore === null ? 0 : Math.round(preScore / preTotal * 100),
     m = Math.round(s / u * 100),
     h = m - p;

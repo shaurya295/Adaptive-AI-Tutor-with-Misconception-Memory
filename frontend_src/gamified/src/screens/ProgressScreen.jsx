@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getLearningCurve, getRollingStats } from '../api/mock';
+import { getLearningCurve, getRollingStats } from '../api/client';
 import { DialogBox } from '../components/Dialog';
 import { PixelButton } from '../components/PixelButton';
 import { WizardSprite } from '../components/Sprites';

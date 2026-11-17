@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getConceptGraph } from '../api/mock';
+import { getConceptGraph } from '../api/client';
 import { DialogBox } from '../components/Dialog';
 import { WizardSprite } from '../components/Sprites';
 import { TOPICS, explainConcept, masteryColor } from '../data/content';

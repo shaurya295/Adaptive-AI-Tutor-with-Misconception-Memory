@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { initialScreen } from './screen-param';
 import { Hud } from './components/Hud';
+import { useHud } from './api/hud';
+import { getMe, guestSignIn, isMock, updateMe } from './api/client';
 import { Mascot } from './components/Mascot';
 import { AvatarSelectScreen } from './screens/AvatarSelectScreen';
 import { EvalMetricsScreen } from './screens/EvalMetricsScreen';
@@ -22,8 +24,10 @@ import { WelcomeScreen } from './screens/WelcomeScreen';
 export const SCREEN_FLOW = [`landing`, `signin`, `mainmenu`, `welcome`, `avatarselect`, `howitworks`, `pretest`, `lesson`, `posttest`, `progress`, `sessioncomplete`, `reward`];
 export function App() {
   let [e, t] = (0, React.useState)(initialScreen(`landing`)),
-    [n] = (0, React.useState)(82),
-    [r] = (0, React.useState)(70),
+    hud = useHud(),
+    n = hud.coins,
+    r = hud.xp_pct,
+    [dueCount, setDueCount] = React.useState(isMock ? 2 : 0),
     [, i] = (0, React.useState)(`idle`),
     [a, o] = (0, React.useState)([]),
     [s, c] = (0, React.useState)(``),
@@ -39,6 +43,16 @@ export function App() {
       y(e), x(t);
     }, []);
   (0, React.useEffect)(() => {
+    if (!isMock) {
+      // Real mode: whoever is signed in (from the Simple dashboard or an earlier game) goes straight to the menu.
+      getMe().then(me => {
+        if (!me) return;
+        o(t => t.find(t => t.id === me.student_id) ? t : [...t, { id: me.student_id, name: me.display_name, avatarId: me.companion_id || `wizard` }]);
+        c(me.student_id), d(me.display_name), me.companion_id && p(me.companion_id), setDueCount(me.due_count);
+        t(initialScreen(`mainmenu`));
+      }).catch(() => {});
+      return;
+    }
     let e = new URLSearchParams(window.location.search).get(`student_id`) || localStorage.getItem(`mentora_student_id`);
     if (!e) return;
     localStorage.setItem(`mentora_student_id`, e);
@@ -58,6 +72,14 @@ export function App() {
     te = ![`landing`, `signin`].includes(e),
     ne = e => {
       d(e);
+      if (!isMock) {
+        guestSignIn(e).then(res => {
+          o(r => [...r.filter(x => x.id !== res.student_id), { id: res.student_id, name: e, avatarId: f }]);
+          c(res.student_id);
+          getMe();
+        }).catch(() => {});
+        return;
+      }
       let t = `${e.toLowerCase().replace(/\s+/g, `-`)}-${Date.now()}`,
         n = {
           id: t,
@@ -70,6 +92,7 @@ export function App() {
       });
     },
     O = e => {
+      isMock || updateMe({ companion_id: e }).catch(() => {});
       p(e), o(t => t.map(t => t.id === s ? {
         ...t,
         avatarId: e
@@ -83,12 +106,12 @@ export function App() {
   return <div style={{
     minHeight: `100vh`,
     background: `#1a0a2e`
-  }}>{te && <Hud coins={n} level={3} xp={r} goTo={D} playerName={u} />}<div style={{
+  }}>{te && <Hud coins={n} level={hud.level} xp={r} goTo={D} playerName={u} />}<div style={{
       paddingTop: te ? 48 : 0
     }}>{e === `landing` && <LandingScreen next={E} />}{e === `signin` && <SignInScreen next={E} back={() => t(`landing`)} onSetName={ne} />}{e === `mainmenu` && <MainMenuScreen goTo={D} />}{e === `welcome` && <WelcomeScreen next={E} />}{e === `avatarselect` && <AvatarSelectScreen next={E} onSelect={O} />}{e === `howitworks` && <HowItWorksScreen next={E} />}{e === `pretest` && <PreTestScreen studentId={k} onComplete={ie} onUpdateRisk={ee} />}{e === `lesson` && <LessonScreen next={E} studentId={k} onWrongStreak={w} onUpdateRisk={ee} />}{e === `posttest` && <PostTestScreen studentId={k} preScore={m} preTotal={g} onComplete={oe} onUpdateRisk={ee} />}{e === `progress` && <ProgressScreen next={E} studentId={k} />}{e === `sessioncomplete` && <SessionCompleteScreen next={E} />}{e === `reward` && <RewardScreen goTo={D} />}{e === `freequest` && <FreeQuestScreen goTo={D} setRobotMood={i} />}{e === `leaderboard` && <LeaderboardScreen goTo={D} profiles={a} activeProfileId={s} />}{e === `evalmetrics` && <EvalMetricsScreen goTo={D} sessionRiskScore={S} />}{e === `misconceptions` && <MisconceptionsScreen goTo={D} studentId={k} />}{e === `spacedrepeat` && <SpacedReviewScreen goTo={D} studentId={k} />}{e === `switchstudent` && <SwitchStudentScreen goTo={D} profiles={a} activeProfileId={s} onSwitch={e => {
         c(e);
         let t = a.find(t => t.id === e);
         t && d(t.name);
-      }} onAddNew={() => D(`signin`)} />}</div><Mascot screen={e} wrongAnswerStreak={C} spacedRepDueCount={2} newBestCurve={!1} /></div>;
+      }} onAddNew={() => D(`signin`)} />}</div><Mascot screen={e} wrongAnswerStreak={C} spacedRepDueCount={dueCount} newBestCurve={!1} /></div>;
 }
 // JSX treats lower-case tags as HTML elements, so the minified component names get capitalised aliases.

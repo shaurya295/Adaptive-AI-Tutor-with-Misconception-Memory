@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { getHint, recordAttempt } from '../api/mock';
+import { answerQuestion, finishSession, isMock, startSession } from '../api/client';
 import { DialogBox } from './Dialog';
 import { PixelButton } from './PixelButton';
 import { QuestionTimer } from './QuestionTimer';
@@ -10,7 +11,10 @@ export const QuizEngine = ({
   studentId,
   onComplete,
   timeLimitSec = 30,
-  onUpdateRisk
+  onUpdateRisk,
+  sessionKind,
+  sessionConcept,
+  onAnswered
 }) => {
   let [o, s] = (0, React.useState)(0),
     [c, u] = (0, React.useState)(null),
@@ -22,9 +26,29 @@ export const QuizEngine = ({
     x = (0, React.useRef)(0),
     [S, C] = (0, React.useState)(null),
     [w, ee] = (0, React.useState)(!1),
-    E = questions[o];
+    E = questions[o],
+    [key, setKey] = React.useState(null),          // the correct option, as the server reveals it
+    [busy, setBusy] = React.useState(false),
+    sessionRef = React.useRef(null),
+    K = key ?? E.correct;
+  React.useEffect(() => {
+    if (!isMock && sessionKind) startSession(sessionKind, sessionConcept).then(r => { sessionRef.current = r.session_id; }).catch(() => {});
+  }, []);
+  // Real mode: the server grades the answer and says which option was right.
+  const grade = (picked, ms) => {
+    setBusy(true);
+    answerQuestion(E, picked, ms, sessionRef.current).then(res => {
+      setKey(res.correctAnswer);
+      picked == null ? m(!0) : u(picked);
+      res.correct ? f(n => n + 1) : C(res.feedback || null);
+      onAnswered?.(res);
+    }).catch(err => {
+      picked == null ? m(!0) : u(picked);
+      C(`⚠️ ${err.message}`);
+    }).finally(() => setBusy(false));
+  };
   (0, React.useEffect)(() => {
-    u(null), m(!1), C(null), ee(!1), v.current = performance.now();
+    u(null), m(!1), C(null), ee(!1), setKey(null), v.current = performance.now();
   }, [o]);
   let te = e => {
     ee(!0), getHint({
@@ -42,10 +66,12 @@ export const QuizEngine = ({
     return document.addEventListener(`visibilitychange`, e), () => document.removeEventListener(`visibilitychange`, e);
   }, [c, onUpdateRisk]);
   let ne = e => {
-    if (c || p) return;
-    let t = Math.round(performance.now() - v.current),
-      r = e === E.correct;
-    t < 1500 && (x.current += 1, onUpdateRisk?.(b.current, x.current)), u(e), r ? f(e => e + 1) : te(e), recordAttempt({
+    if (c || p || busy) return;
+    let t = Math.round(performance.now() - v.current);
+    t < 1500 && (x.current += 1, onUpdateRisk?.(b.current, x.current));
+    if (!isMock) return grade(e, t);
+    let r = e === E.correct;
+    u(e), r ? f(e => e + 1) : te(e), recordAttempt({
       student_id: studentId || `anonymous`,
       concept: E.concept,
       question_id: E.id,
@@ -72,6 +98,7 @@ export const QuizEngine = ({
       }}><div className="hp-bar-fill" style={{
           "--fill": `${o / questions.length * 100}%`
         }} /></div><QuestionTimer timeLimitSec={timeLimitSec} paused={!!(c || p)} onTimeout={() => {
+        if (!isMock) return grade(null, timeLimitSec * 1e3);
         m(!0), te(`(no answer — time ran out)`), recordAttempt({
           student_id: studentId || `anonymous`,
           concept: E.concept,
@@ -80,15 +107,15 @@ export const QuizEngine = ({
           time_taken_ms: timeLimitSec * 1e3,
           hint_used: !1
         });
-      }} /><div className="flex items-end gap-4 mb-6"><div className="flex-shrink-0"><WizardSprite mood={p ? `thinking` : c ? c === E.correct ? `celebrate` : `thinking` : `idle`} size={1.1} /></div><div className="flex-1"><DialogBox speaker="PIXEL — AI TUTOR" text={E.text} /></div></div><div className="grid grid-cols-2 gap-3 mb-4">{E.options.map(e => {
+      }} /><div className="flex items-end gap-4 mb-6"><div className="flex-shrink-0"><WizardSprite mood={p ? `thinking` : c ? c === K ? `celebrate` : `thinking` : `idle`} size={1.1} /></div><div className="flex-1"><DialogBox speaker="PIXEL — AI TUTOR" text={E.text} /></div></div><div className="grid grid-cols-2 gap-3 mb-4">{E.options.map(e => {
           let t = `#5b3a8e`;
-          return (c || p) && (e === E.correct ? t = `#4aff91` : e === c && (t = `#ff3355`)), <PixelButton onClick={() => ne(e)} color={t} size="md" className="w-full" disabled={!!(c || p)} key={e}>{e}</PixelButton>;
-        })}</div>{(c || p) && <div className="flex items-center gap-3 mb-4 slide-up"><WizardSprite mood={c === E.correct ? `celebrate` : `thinking`} size={.7} /><div className="flex-1 border-4 border-black bg-white p-3" style={{
+          return (c || p) && (e === K ? t = `#4aff91` : e === c && (t = `#ff3355`)), <PixelButton onClick={() => ne(e)} color={t} size="md" className="w-full" disabled={!!(c || p)} key={e}>{e}</PixelButton>;
+        })}</div>{(c || p) && <div className="flex items-center gap-3 mb-4 slide-up"><WizardSprite mood={c === K ? `celebrate` : `thinking`} size={.7} /><div className="flex-1 border-4 border-black bg-white p-3" style={{
           boxShadow: `4px 4px 0 #000`
-        }}><p className="font-body text-sm text-gray-900">{p ? `⏰ Time's up! The answer was: ${E.correct}` : c === E.correct ? `🎉 Correct! +1 point!` : `❌ Not quite! Answer: ${E.correct}`}</p></div></div>}{c && c !== E.correct || p ? <div className="flex items-start gap-3 mb-4 slide-up"><div className="text-xl" aria-hidden={!0}>🤖</div><div className="flex-1 border-4 border-black p-3" style={{
+        }}><p className="font-body text-sm text-gray-900">{p ? `⏰ Time's up! The answer was: ${K}` : c === K ? `🎉 Correct! +1 point!` : `❌ Not quite! Answer: ${K}`}</p></div></div>}{c && c !== K || p ? <div className="flex items-start gap-3 mb-4 slide-up"><div className="text-xl" aria-hidden={!0}>🤖</div><div className="flex-1 border-4 border-black p-3" style={{
           background: `#fff7d6`,
           boxShadow: `4px 4px 0 #000`
         }}>{w ? <p className="font-body text-sm text-gray-700 italic">Pixel is thinking it through…</p> : <p className="font-body text-sm text-gray-900">{S}</p>}</div></div> : null}{(c || p) && <div className="flex justify-center"><PixelButton onClick={() => {
-          o + 1 >= questions.length ? (_(!0), onComplete(d + +(c === E.correct), questions.length)) : s(e => e + 1);
+          o + 1 >= questions.length ? (_(!0), finishSession(sessionRef.current).catch(() => {}), onComplete(d, questions.length)) : s(e => e + 1);
         }} color="#ff00cc" size="lg">{o + 1 >= questions.length ? `FINISH ▶` : `NEXT ▶`}</PixelButton></div>}</div></div>;
 };

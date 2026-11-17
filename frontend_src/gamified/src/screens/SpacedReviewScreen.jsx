@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as JSXRuntime from 'react/jsx-runtime';
-import { getProfile } from '../api/mock';
+import { getProfile } from '../api/client';
 import { DialogBox } from '../components/Dialog';
 import { WizardSprite } from '../components/Sprites';
 import { masteryColor } from '../data/content';

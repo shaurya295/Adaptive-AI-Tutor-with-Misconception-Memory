@@ -450,6 +450,11 @@ def escalations_review(body: EscalationReviewBody, caller: Caller = Depends(curr
     return {"ok": True}
 
 
+from backend.api.game_routes import router as game_router  # noqa: E402  (after the routes above)
+
+app.include_router(game_router)
+
+
 # --------------------------------------------------------------------------- #
 # Static frontends (mounted last so /api/* routes above take precedence)
 # --------------------------------------------------------------------------- #
