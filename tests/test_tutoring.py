@@ -134,3 +134,22 @@ def test_explain_only_never_opens_a_problem(client):
     assert r["active_question"] is None and "Try this" not in r["reply"]
     again = client.post("/api/chat", json={"concept": "Fractions", "message": "2/6", "explain_only": True}).json()
     assert again["hint_ladder"] == {"kind": "none"} and again["active_question"] is None      # explained, not graded
+
+
+@pytest.mark.parametrize(
+    "question, answer, key, model_label, expected",
+    [
+        ("What is 1/2 + 1/4?", "2/6", "3/4", "careless", "conceptual"),       # far off: a wrong method
+        ("Solve for x: 5x - 7 = 18", "6", "5", "none", "careless"),           # within 25%: a slip
+        ("Solve for x: 4 - x = 9", "5", "-5", "conceptual", "careless"),      # sign slip
+        ("Which is greater: 2/5 or 3/10?", "3/10", "2/5", "careless", "conceptual"),  # picked the other option
+        ("Convert 0.75 to a percentage.", "7.5%", "75%", "careless", "conceptual"),
+        ("Solve for x: 2x + 3 = 11", "x is about 4ish?", "4", "careless", "careless"),  # not a bare number: model decides
+        ("Solve for x: 2x + 3 = 11", "dunno", "4", "none", "conceptual"),
+        ("What is 1/2 + 1/4?", "2/6", "3/4", "prerequisite", "prerequisite"),
+    ],
+)
+def test_error_type_rules(question, answer, key, model_label, expected):
+    from backend.agents.evaluator_agent import classify_error
+
+    assert classify_error(question, answer, key, model_label) == expected

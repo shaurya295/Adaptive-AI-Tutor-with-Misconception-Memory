@@ -22,13 +22,14 @@ correct and the confidence is at or above the routing threshold.
 from __future__ import annotations
 
 import logging
+import re
 from enum import Enum
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
 from backend import llm
-from backend.grading import match_answer
+from backend.grading import match_answer, parse_value
 from backend.memory.misconception_graph import get_prerequisites
 
 logger = logging.getLogger("evaluator_agent")
@@ -93,8 +94,9 @@ def _assess_prompt(question: str, answer: str, concept: str, key: Optional[str],
         f"{key_line}"
         f'Student wrote: """{answer}"""\n'
         "verdict: correct, partially_correct or incorrect.\n"
-        "error_type: careless (knows the method, slipped), conceptual (misunderstands this topic), "
-        "prerequisite (an earlier skill is missing), or none if the answer is correct.\n"
+        "error_type: careless ONLY if the method is right and a small arithmetic or copying slip changed the result; "
+        "conceptual if the answer comes from a wrong method or a wrong idea (most wrong answers); "
+        "prerequisite if an earlier skill is missing; none if the answer is correct.\n"
         "misconception: the wrong idea behind the answer, in at most 12 words; empty if correct.\n"
         f"missing_prerequisite: one of [{prereq_line}] if error_type is prerequisite, otherwise none.\n"
         "confidence: 0 to 1, how sure the student seems of a correct answer (hedging lowers it).\n"
@@ -121,6 +123,24 @@ def assess(question: str, answer: str, concept: str, key: Optional[str]) -> dict
         "confidence": confidence,
         "distress": bool(data.get("distress")),
     }
+
+
+def classify_error(question: str, answer: str, key: Optional[str], model_label: str) -> str:
+    """
+    Why is a wrong answer wrong? Small models call almost every mistake "careless", so for a
+    bare number the decision is made here: an answer close to the key (within 25%, or the key with
+    the wrong sign) is a slip; picking a number that is already in the question (e.g. the other
+    option in "which is greater") or landing far away is a misunderstanding. Otherwise the model's
+    label stands, except that "none" for a wrong answer means conceptual.
+    """
+    got, want = parse_value(answer), parse_value(key) if key else None
+    if got is not None and want is not None and got != want:
+        if any(parse_value(tok) == got for tok in re.findall(r"-?\d+(?:\s*/\s*\d+|\.\d+)?", question)):
+            return "conceptual"
+        if got == -want or (want != 0 and abs(got - want) / abs(want) <= 0.25):
+            return "careless"
+        return "conceptual" if model_label != "prerequisite" else "prerequisite"
+    return model_label if model_label in ("careless", "conceptual", "prerequisite") else "conceptual"
 
 
 def run_evaluator(state: dict) -> dict:
@@ -151,8 +171,8 @@ def run_evaluator(state: dict) -> dict:
         assessment = assess(current_question, student_response, current_concept, key)
         if matched is False:
             assessment["verdict"] = AnswerQuality.INCORRECT.value      # the key outranks the model's opinion
-        if assessment["verdict"] != AnswerQuality.CORRECT.value and assessment["error_type"] == "none":
-            assessment["error_type"] = "conceptual"
+        if assessment["verdict"] != AnswerQuality.CORRECT.value:
+            assessment["error_type"] = classify_error(current_question, student_response, key, assessment["error_type"])
         state["assessment"] = assessment
         result = EvaluatorResult(
             answer_quality=AnswerQuality(assessment["verdict"]),
