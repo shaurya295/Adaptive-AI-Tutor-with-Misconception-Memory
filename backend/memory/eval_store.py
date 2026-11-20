@@ -67,6 +67,14 @@ interaction_log = Table(
     Column("mastery_after", Float, nullable=False),
     Column("teacher_summary", Text, nullable=True),
     Column("warranted", Boolean, nullable=True),
+    Column("answer_correct", Boolean, nullable=True),
+    Column("missing_prerequisite", Text, nullable=True),
+    Column("prereq_known_before", Boolean, nullable=True),
+    Column("leak_guard_triggered", Boolean, nullable=True),
+    Column("hint_level", Integer, nullable=True),
+    Column("trigger_type", String(32), nullable=True),
+    Column("question_text", Text, nullable=True),
+    Column("response_text", Text, nullable=True),
 )
 
 # Columns added after this table's original creation — each one needs an
@@ -78,6 +86,14 @@ _COLUMN_MIGRATIONS = [
     ("cheating_risk_detected", "BOOLEAN NOT NULL DEFAULT 0"),
     ("teacher_summary", "TEXT"),
     ("warranted", "BOOLEAN"),
+    ("answer_correct", "BOOLEAN"),
+    ("missing_prerequisite", "TEXT"),
+    ("prereq_known_before", "BOOLEAN"),
+    ("leak_guard_triggered", "BOOLEAN"),
+    ("hint_level", "INTEGER"),
+    ("trigger_type", "VARCHAR(32)"),
+    ("question_text", "TEXT"),
+    ("response_text", "TEXT"),
 ]
 
 
@@ -119,6 +135,14 @@ def record_interaction(
     identified_misconception: Optional[str] = None,
     applied_strategy: Optional[str] = None,
     teacher_summary: Optional[str] = None,
+    answer_correct: Optional[bool] = None,
+    missing_prerequisite: Optional[str] = None,
+    prereq_known_before: Optional[bool] = None,
+    leak_guard_triggered: Optional[bool] = None,
+    hint_level: Optional[int] = None,
+    trigger_type: Optional[str] = None,
+    question_text: Optional[str] = None,
+    response_text: Optional[str] = None,
 ) -> None:
     """Records one tutoring turn. Failures are logged, not raised — this
     must never break the tutoring graph."""
@@ -143,6 +167,14 @@ def record_interaction(
                     mastery_before=mastery_before,
                     mastery_after=mastery_after,
                     teacher_summary=teacher_summary,
+                    answer_correct=answer_correct,
+                    missing_prerequisite=missing_prerequisite,
+                    prereq_known_before=prereq_known_before,
+                    leak_guard_triggered=leak_guard_triggered,
+                    hint_level=hint_level,
+                    trigger_type=trigger_type,
+                    question_text=question_text,
+                    response_text=response_text,
                 )
             )
     except Exception as exc:  # noqa: BLE001
@@ -180,7 +212,7 @@ def set_escalation_warranted(interaction_id: int, warranted: bool) -> bool:
         with _engine.begin() as conn:
             result = conn.execute(
                 interaction_log.update()
-                .where(interaction_log.c.id == interaction_id)
+                .where(interaction_log.c.id == interaction_id, interaction_log.c.escalated.is_(True))
                 .values(warranted=warranted)
             )
             return result.rowcount > 0

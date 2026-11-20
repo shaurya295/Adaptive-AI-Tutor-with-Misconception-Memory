@@ -1,0 +1,837 @@
+{
+  "Fractions": {
+    "dialog": [
+      "Hello, brave learner! I am Pixel, and today our quest is all about Fractions.",
+      "A fraction like 3/4 means a whole cut into 4 equal pieces, and you have 3 of them. The bottom number tells you the size of each piece.",
+      "To add fractions, the bottoms must match first. For 1/2 + 1/3, turn them into 3/6 + 2/6, then add only the tops to get 5/6.",
+      "To multiply, go top times top and bottom times bottom. To divide, keep the first fraction, change divide to times, and flip only the second one.",
+      "Your wand is ready! Here come a few questions. Take your time and think about the size of the pieces."
+    ],
+    "questions": [
+      {
+        "id": 3001,
+        "question": "Which fraction is bigger: 1/3 or 1/5?",
+        "choices": [
+          "1/5",
+          "1/3",
+          "They are equal",
+          "You cannot compare them"
+        ],
+        "answer": 1,
+        "clue": "Picture one pizza cut into 3 slices and another cut into 5. Which single slice is larger?",
+        "feedback": {
+          "0": {
+            "text": "5 is bigger than 3, but cutting a whole into 5 pieces makes each piece smaller. So 1/5 is less than 1/3.",
+            "misconception": "fractions-bigger-denominator-bigger"
+          },
+          "2": {
+            "text": "Both have a top of 1, but the pieces are different sizes. A third is bigger than a fifth, so they are not equal.",
+            "misconception": null
+          },
+          "3": {
+            "text": "We can compare them! When the tops are the same, the fraction with fewer pieces in the whole has the bigger pieces.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3002,
+        "question": "What is 1/4 + 2/3?",
+        "choices": [
+          "3/7",
+          "2/12",
+          "3/12",
+          "11/12"
+        ],
+        "answer": 3,
+        "clue": "Change both fractions into twelfths first, then add only the tops.",
+        "feedback": {
+          "0": {
+            "text": "You added the tops and the bottoms. The bottom is the piece size, so it is not added. Change both to twelfths: 3/12 + 8/12.",
+            "misconception": "fractions-add-tops-and-bottoms"
+          },
+          "1": {
+            "text": "2/12 is what multiplying gives. For adding, change to twelfths first: 1/4 = 3/12 and 2/3 = 8/12, then add the tops.",
+            "misconception": null
+          },
+          "2": {
+            "text": "You used twelfths but kept the old tops. 1/4 becomes 3/12 and 2/3 becomes 8/12, so the total is 3 + 8 twelfths.",
+            "misconception": "fractions-add-tops-and-bottoms"
+          }
+        }
+      },
+      {
+        "id": 3003,
+        "question": "What is 1/2 times 3/4?",
+        "choices": [
+          "3/8",
+          "6/4",
+          "5/4",
+          "4/6"
+        ],
+        "answer": 0,
+        "clue": "Multiplying is the easy one: top times top, bottom times bottom. No matching bottoms needed.",
+        "feedback": {
+          "1": {
+            "text": "No common denominator is needed to multiply. Just go top times top and bottom times bottom: 1 times 3 over 2 times 4.",
+            "misconception": "fractions-common-denominator-to-multiply"
+          },
+          "2": {
+            "text": "5/4 is what you get by adding them. For multiplying, go top times top and bottom times bottom.",
+            "misconception": null
+          },
+          "3": {
+            "text": "It looks like the tops and bottoms were added. For multiplying, multiply them instead: 1 times 3 over 2 times 4.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3004,
+        "question": "What is 1/2 divided by 1/4?",
+        "choices": [
+          "1/8",
+          "1/2",
+          "2",
+          "8"
+        ],
+        "answer": 2,
+        "clue": "Keep the first fraction, change divide to times and flip only the second. Or ask: how many quarters fit in a half?",
+        "feedback": {
+          "0": {
+            "text": "That multiplies without flipping. Keep 1/2, change divide to times, then flip 1/4 to 4/1: 1/2 times 4 = 2.",
+            "misconception": null
+          },
+          "1": {
+            "text": "It looks like the first fraction was flipped. Only flip the second one: 1/2 times 4/1 = 4/2 = 2.",
+            "misconception": "fractions-flip-wrong-fraction"
+          },
+          "3": {
+            "text": "It looks like both fractions were flipped. Keep the first one as it is and flip only the second: 1/2 times 4/1 = 2.",
+            "misconception": "fractions-flip-wrong-fraction"
+          }
+        }
+      },
+      {
+        "id": 3005,
+        "question": "What is 1/3 + 3/4?",
+        "choices": [
+          "5/4",
+          "13/12",
+          "4/7",
+          "1/4"
+        ],
+        "answer": 1,
+        "clue": "Cancelling only works when you multiply. Here, find a common bottom number (twelfths) and add the tops.",
+        "feedback": {
+          "0": {
+            "text": "Cancelling the 3s only works when you multiply. For adding, use twelfths: 1/3 = 4/12 and 3/4 = 9/12, then add the tops.",
+            "misconception": "fractions-cancel-when-adding"
+          },
+          "2": {
+            "text": "You added the tops and the bottoms. Make the bottoms match first: 1/3 = 4/12 and 3/4 = 9/12, then add the tops.",
+            "misconception": "fractions-add-tops-and-bottoms"
+          },
+          "3": {
+            "text": "1/4 is what multiplying gives. For adding, change both to twelfths and add the tops: 4/12 + 9/12.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3006,
+        "question": "Which of these fractions is the smallest?",
+        "choices": [
+          "1/2",
+          "1/4",
+          "1/6",
+          "1/8"
+        ],
+        "answer": 3,
+        "clue": "All the tops are the same, so look at how many pieces the whole is cut into. More pieces means smaller pieces.",
+        "feedback": {
+          "0": {
+            "text": "2 is the smallest bottom number, but that means the biggest pieces. Halves are bigger than quarters, sixths or eighths.",
+            "misconception": "fractions-bigger-denominator-bigger"
+          },
+          "1": {
+            "text": "1/4 is smaller than 1/2, but there is an even smaller one. The more pieces a whole is cut into, the smaller each piece.",
+            "misconception": null
+          },
+          "2": {
+            "text": "1/6 is small, but eighths are smaller still. More pieces in the whole means smaller pieces.",
+            "misconception": null
+          }
+        }
+      }
+    ]
+  },
+  "Probability": {
+    "dialog": [
+      "Greetings, traveller! Pixel here. Today we explore Probability, the magic of chance.",
+      "Probability is favourable outcomes over total outcomes. A die has 6 faces, so the chance of rolling a 3 is 1/6. It is always between 0 and 1.",
+      "When two separate things must both happen, multiply: two heads in a row is 1/2 times 1/2, which is 1/4. A coin has no memory, so past flips never change the next one.",
+      "For A or B, add the chances but take away any overlap you counted twice. And if you pick without putting back, the totals shrink for the next pick.",
+      "Ready your crystal ball! A few questions are on their way."
+    ],
+    "questions": [
+      {
+        "id": 3101,
+        "question": "You flip a fair coin twice. What is the probability of getting heads both times?",
+        "choices": [
+          "1",
+          "1/4",
+          "1/2",
+          "3/4"
+        ],
+        "answer": 1,
+        "clue": "Both flips must be heads. When you need this AND that, multiply the chances instead of adding them.",
+        "feedback": {
+          "0": {
+            "text": "Adding 1/2 + 1/2 gives 1, which would mean it is certain. For both to happen, multiply: 1/2 times 1/2.",
+            "misconception": "probability-add-instead-of-multiply"
+          },
+          "2": {
+            "text": "1/2 is the chance for one flip. Both flips need to be heads, so multiply: 1/2 times 1/2.",
+            "misconception": null
+          },
+          "3": {
+            "text": "3/4 is the chance of at least one head. For heads both times, multiply: 1/2 times 1/2.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3102,
+        "question": "A fair coin lands on heads 5 times in a row. What is the probability that the next flip is tails?",
+        "choices": [
+          "1/2",
+          "More than 1/2",
+          "Less than 1/2",
+          "1"
+        ],
+        "answer": 0,
+        "clue": "Does a coin remember what it did before? Each flip starts fresh with the same two sides.",
+        "feedback": {
+          "1": {
+            "text": "Tails is not 'due'. The coin has no memory, so each flip is a fresh 1 out of 2 chance.",
+            "misconception": "probability-gamblers-fallacy"
+          },
+          "2": {
+            "text": "A run of heads doesn't make heads more likely next time. Each flip is new, so tails is still 1 out of 2.",
+            "misconception": "probability-gamblers-fallacy"
+          },
+          "3": {
+            "text": "Tails is never certain. Past flips don't change the next one, so the chance stays 1 out of 2.",
+            "misconception": "probability-gamblers-fallacy"
+          }
+        }
+      },
+      {
+        "id": 3103,
+        "question": "A bag has 3 red and 2 blue sweets. You take out a red one and eat it. What is the probability that the next sweet you take is red?",
+        "choices": [
+          "3/5",
+          "2/5",
+          "1/2",
+          "3/4"
+        ],
+        "answer": 2,
+        "clue": "After eating one red sweet, count again: how many reds are left, and how many sweets are left in total?",
+        "feedback": {
+          "0": {
+            "text": "3/5 was the chance before you ate one. Now there are only 2 reds and 4 sweets left.",
+            "misconception": "probability-no-replacement-same-total"
+          },
+          "1": {
+            "text": "You took one red away, but the total went down too. There are 4 sweets left, and 2 of them are red.",
+            "misconception": "probability-no-replacement-same-total"
+          },
+          "3": {
+            "text": "The total went down to 4, but the reds went down too. Only 2 red sweets are left.",
+            "misconception": "probability-no-replacement-same-total"
+          }
+        }
+      },
+      {
+        "id": 3104,
+        "question": "A number from 1 to 10 is picked at random. What is the probability that it is even or bigger than 7?",
+        "choices": [
+          "4/5",
+          "3/20",
+          "3/5",
+          "1/5"
+        ],
+        "answer": 2,
+        "clue": "List the even numbers, then add any number above 7 that is not on your list yet.",
+        "feedback": {
+          "0": {
+            "text": "8 and 10 are even AND bigger than 7, so they got counted twice. Count them once: 2, 4, 6, 8, 9, 10 makes 6 out of 10.",
+            "misconception": "probability-forget-overlap"
+          },
+          "1": {
+            "text": "3/20 comes from multiplying. For 'or', add the chances and take away the overlap, or just list the numbers that fit.",
+            "misconception": null
+          },
+          "3": {
+            "text": "1/5 counts only the numbers that are both even and bigger than 7. 'Or' means either one is fine: 6 numbers out of 10.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3105,
+        "question": "A bag has 2 red, 3 green and 5 yellow counters. What is the probability of picking a green counter?",
+        "choices": [
+          "3/10",
+          "10/3",
+          "3/7",
+          "1/3"
+        ],
+        "answer": 0,
+        "clue": "Count every counter in the bag for the bottom number, and only the green ones for the top.",
+        "feedback": {
+          "1": {
+            "text": "A probability can never be more than 1. Put the green counters on top and all 10 counters on the bottom.",
+            "misconception": "probability-miscounted-outcomes"
+          },
+          "2": {
+            "text": "3/7 compares green with the counters that are not green. The bottom should be every counter: 2 + 3 + 5 = 10.",
+            "misconception": "probability-miscounted-outcomes"
+          },
+          "3": {
+            "text": "There are 3 colours, but not the same number of each. Count the counters, not the colours: 3 green out of 10.",
+            "misconception": "probability-miscounted-outcomes"
+          }
+        }
+      },
+      {
+        "id": 3106,
+        "question": "You roll a fair die and flip a fair coin. What is the probability of getting a 6 and heads?",
+        "choices": [
+          "2/3",
+          "1/6",
+          "1/8",
+          "1/12"
+        ],
+        "answer": 3,
+        "clue": "Both must go your way. Count how many die and coin pairs there are, or multiply the two chances.",
+        "feedback": {
+          "0": {
+            "text": "Adding 1/6 + 1/2 gives 2/3, but both things must happen. For 'and', multiply: 1/6 times 1/2.",
+            "misconception": "probability-add-instead-of-multiply"
+          },
+          "1": {
+            "text": "1/6 is the chance of a 6 on its own. The coin must also land heads, so multiply by 1/2.",
+            "misconception": null
+          },
+          "2": {
+            "text": "There aren't 6 + 2 = 8 outcomes. Each of the 6 die results can pair with 2 coin results, so there are 6 times 2 = 12.",
+            "misconception": "probability-add-instead-of-multiply"
+          }
+        }
+      }
+    ]
+  },
+  "Algebra": {
+    "dialog": [
+      "Hello, puzzle solver! I am Pixel, and today we unlock the secrets of Algebra.",
+      "An equation is like a balance scale. Whatever you do to one side, you must do to the other side too, so it stays level.",
+      "To get x alone, use the opposite move. For x + 7 = 12, take 7 from both sides: x = 5. For 3x + 5 = 14, take away 5 first, then divide by 3: x = 3.",
+      "Watch the details: 2(x + 5) means 2x + 10, a minus sign stays with its number, and 4 less than x means x - 4.",
+      "Grab your spellbook! A few equations are coming up next."
+    ],
+    "questions": [
+      {
+        "id": 3201,
+        "question": "Solve for x: x - 6 = 10",
+        "choices": [
+          "4",
+          "16",
+          "60",
+          "-16"
+        ],
+        "answer": 1,
+        "clue": "To undo taking away 6, do the opposite to both sides.",
+        "feedback": {
+          "0": {
+            "text": "Taking 6 away again goes the wrong way. To undo the minus 6, add 6 to both sides: 10 + 6.",
+            "misconception": "algebra-move-without-sign-change"
+          },
+          "2": {
+            "text": "Multiplying doesn't undo taking away. Add 6 to both sides instead: x = 10 + 6.",
+            "misconception": "algebra-move-without-sign-change"
+          },
+          "3": {
+            "text": "Check it: -16 - 6 is -22, not 10. Add 6 to both sides, and the answer stays positive.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3202,
+        "question": "Solve for x: 2x + 6 = 20",
+        "choices": [
+          "4",
+          "13",
+          "7",
+          "14"
+        ],
+        "answer": 2,
+        "clue": "Undo the outside layer first: deal with the + 6 before the 2 in front of x.",
+        "feedback": {
+          "0": {
+            "text": "It looks like you divided first. Undo the + 6 first to get 2x = 14, then divide by 2.",
+            "misconception": "algebra-wrong-order-two-step"
+          },
+          "1": {
+            "text": "Adding 6 goes the wrong way. Take 6 away from both sides to get 2x = 14, then divide by 2.",
+            "misconception": "algebra-move-without-sign-change"
+          },
+          "3": {
+            "text": "Good first step: 2x = 14. Now finish by dividing both sides by 2.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3203,
+        "question": "Solve for x: 2(x + 4) = 20",
+        "choices": [
+          "8",
+          "14",
+          "12",
+          "6"
+        ],
+        "answer": 3,
+        "clue": "Multiply the 2 by everything inside the bracket first, then solve step by step.",
+        "feedback": {
+          "0": {
+            "text": "The 2 must multiply both terms in the bracket: 2(x + 4) = 2x + 8, not 2x + 4. Then 2x = 12.",
+            "misconception": "algebra-partial-distribution"
+          },
+          "1": {
+            "text": "Dividing by 2 gives x + 4 = 10. Now take the 4 away, don't add it: x = 10 - 4.",
+            "misconception": "algebra-move-without-sign-change"
+          },
+          "2": {
+            "text": "Nearly there! 2x + 8 = 20 gives 2x = 12. Now divide both sides by 2 to find x.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3204,
+        "question": "Solve for x: -4x = 20",
+        "choices": [
+          "5",
+          "-5",
+          "-80",
+          "24"
+        ],
+        "answer": 1,
+        "clue": "Divide both sides by the whole number in front of x, including its sign.",
+        "feedback": {
+          "0": {
+            "text": "Check it: -4 times 5 is -20, not 20. Divide by the whole -4, sign and all, so the answer is negative.",
+            "misconception": "algebra-drop-negative-coefficient"
+          },
+          "2": {
+            "text": "Multiplying doesn't undo multiplying. Divide both sides by -4 instead.",
+            "misconception": "algebra-move-without-sign-change"
+          },
+          "3": {
+            "text": "-4x means -4 times x, not x minus 4, so adding 4 doesn't undo it. Divide both sides by -4 instead.",
+            "misconception": "algebra-move-without-sign-change"
+          }
+        }
+      },
+      {
+        "id": 3205,
+        "question": "Which equation means: 4 less than a number x is 10?",
+        "choices": [
+          "4 - x = 10",
+          "x + 4 = 10",
+          "4x = 10",
+          "x - 4 = 10"
+        ],
+        "answer": 3,
+        "clue": "Start with the number x, then take 4 away from it. Which side should x go on?",
+        "feedback": {
+          "0": {
+            "text": "'4 less than x' means start with x and take 4 away, so x comes first: x minus 4.",
+            "misconception": "algebra-less-than-reversal"
+          },
+          "1": {
+            "text": "'Less than' means taking away, not adding. Start with x and take 4 away.",
+            "misconception": null
+          },
+          "2": {
+            "text": "4x means 4 times x. '4 less than x' means x with 4 taken away.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3206,
+        "question": "Solve for x: 3x - 6 = 12",
+        "choices": [
+          "6",
+          "2",
+          "10",
+          "18"
+        ],
+        "answer": 0,
+        "clue": "First undo the take away by adding to both sides, then divide by the number in front of x.",
+        "feedback": {
+          "1": {
+            "text": "Taking 6 away again goes the wrong way. Add 6 to both sides to get 3x = 18, then divide by 3.",
+            "misconception": "algebra-move-without-sign-change"
+          },
+          "2": {
+            "text": "It looks like you divided first. Undo the minus 6 first to get 3x = 18, then divide by 3.",
+            "misconception": "algebra-wrong-order-two-step"
+          },
+          "3": {
+            "text": "Good start: 3x = 18. Now divide both sides by 3 to find x.",
+            "misconception": null
+          }
+        }
+      }
+    ]
+  },
+  "Geometry": {
+    "dialog": [
+      "Welcome, shape explorer! Pixel here, ready to cast some spells on Geometry.",
+      "The three angles inside any triangle always add up to 180 degrees. If two angles are 50 and 60, the third is 180 - 110 = 70 degrees.",
+      "Area is the space inside a shape and perimeter is the distance around it. A 5 by 3 rectangle has an area of 15 but a perimeter of 16.",
+      "For a triangle, area is half of base times the straight-up height, not the slanted side. For a circle, area is pi times radius times radius, so halve a diameter first.",
+      "Your compass is ready! Let us try a few questions together."
+    ],
+    "questions": [
+      {
+        "id": 3301,
+        "question": "Two angles of a triangle are 50 degrees and 60 degrees. What is the third angle, in degrees?",
+        "choices": [
+          "110",
+          "250",
+          "70",
+          "60"
+        ],
+        "answer": 2,
+        "clue": "Add the two angles you know, then take that away from the total for a triangle.",
+        "feedback": {
+          "0": {
+            "text": "110 is the two known angles added together. Now take that away from 180 to find the third one.",
+            "misconception": null
+          },
+          "1": {
+            "text": "The angles in a triangle add to 180, not 360. So the third angle is 180 - 110.",
+            "misconception": "geometry-triangle-angles-360"
+          },
+          "3": {
+            "text": "The angles don't have to be equal. Add 50 and 60, then take that away from 180.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3302,
+        "question": "A triangle has a base of 10 cm, a perpendicular height of 4 cm and a slanted side of 5 cm. What is its area in square cm?",
+        "choices": [
+          "25",
+          "40",
+          "19",
+          "20"
+        ],
+        "answer": 3,
+        "clue": "Use half of base times the height that meets the base at a right angle. Ignore the slanted side.",
+        "feedback": {
+          "0": {
+            "text": "5 cm is the slanted side. The height must meet the base at a right angle, so use 4: half of 10 times 4.",
+            "misconception": "geometry-slant-height"
+          },
+          "1": {
+            "text": "Nearly! Base times height gives 40, but a triangle is half of a rectangle, so halve it.",
+            "misconception": null
+          },
+          "2": {
+            "text": "Adding lengths is how a perimeter starts. Area is the space inside: half of base times height.",
+            "misconception": "geometry-perimeter-area-mixup"
+          }
+        }
+      },
+      {
+        "id": 3303,
+        "question": "A circle has a diameter of 10 cm. Using 3 for pi, what is its area in square cm?",
+        "choices": [
+          "300",
+          "75",
+          "30",
+          "15"
+        ],
+        "answer": 1,
+        "clue": "Halve the diameter to get the radius, then square the radius before multiplying by 3.",
+        "feedback": {
+          "0": {
+            "text": "That used the diameter. Area uses the radius, which is half of 10, so it is 3 times 5 times 5.",
+            "misconception": "geometry-diameter-in-area"
+          },
+          "2": {
+            "text": "30 is the distance around the circle (its circumference). Area is the space inside: 3 times radius times radius.",
+            "misconception": "geometry-perimeter-area-mixup"
+          },
+          "3": {
+            "text": "Remember to square the radius: 5 times 5 = 25, then multiply by 3.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3304,
+        "question": "A rectangle is 6 cm long and 4 cm wide. What is its perimeter in cm?",
+        "choices": [
+          "24",
+          "10",
+          "20",
+          "48"
+        ],
+        "answer": 2,
+        "clue": "Walk all the way around the edge and add up all four sides.",
+        "feedback": {
+          "0": {
+            "text": "24 is the area, the space inside. Perimeter is the distance around: 6 + 4 + 6 + 4.",
+            "misconception": "geometry-perimeter-area-mixup"
+          },
+          "1": {
+            "text": "That is only two of the sides. A rectangle has four: 6 + 4 + 6 + 4.",
+            "misconception": null
+          },
+          "3": {
+            "text": "Multiplying gives an area, not a perimeter. Perimeter adds all four sides: 6 + 4 + 6 + 4.",
+            "misconception": "geometry-perimeter-area-mixup"
+          }
+        }
+      },
+      {
+        "id": 3305,
+        "question": "Two angles are supplementary. One of them is 65 degrees. What is the other angle, in degrees?",
+        "choices": [
+          "25",
+          "115",
+          "295",
+          "65"
+        ],
+        "answer": 1,
+        "clue": "Supplementary angles fit together to make a straight line.",
+        "feedback": {
+          "0": {
+            "text": "25 would make 90, which is complementary. Supplementary angles add to 180, so it is 180 - 65. Tip: C comes before S, and 90 before 180.",
+            "misconception": "geometry-complementary-supplementary-mixup"
+          },
+          "2": {
+            "text": "360 is a full turn. Supplementary angles make a straight line, which is 180, so take 65 from 180.",
+            "misconception": null
+          },
+          "3": {
+            "text": "The two angles don't have to be equal. Supplementary angles add to 180, so take 65 from 180.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3306,
+        "question": "A right-angled triangle has one angle of 35 degrees. What is the third angle, in degrees?",
+        "choices": [
+          "55",
+          "145",
+          "235",
+          "125"
+        ],
+        "answer": 0,
+        "clue": "A right angle is one of the three angles. All three share the triangle's total.",
+        "feedback": {
+          "1": {
+            "text": "Don't forget the right angle! The three angles are 90, 35 and the missing one, and they add to 180.",
+            "misconception": null
+          },
+          "2": {
+            "text": "A triangle's angles add to 180, not 360. So the third angle is 180 - 90 - 35.",
+            "misconception": "geometry-triangle-angles-360"
+          },
+          "3": {
+            "text": "125 is 90 + 35, the two angles you know. Take that away from 180 to find the third.",
+            "misconception": null
+          }
+        }
+      }
+    ]
+  },
+  "Decimals and Percentages": {
+    "dialog": [
+      "Hello, number wizard! I am Pixel, and today we master Decimals and Percentages.",
+      "Compare decimals place by place. 0.7 is the same as 0.70, so 0.7 is bigger than 0.35, even though 35 looks bigger than 7.",
+      "Percent means out of 100. To turn a decimal into a percent, multiply by 100, which moves the point two places: 0.35 becomes 35%.",
+      "For a percentage change, divide the change by the starting value. And going up 10% then down 10% does not bring you back to the start.",
+      "Your magic abacus is ready! A few questions are coming your way."
+    ],
+    "questions": [
+      {
+        "id": 3401,
+        "question": "Which of these numbers is the biggest?",
+        "choices": [
+          "0.45",
+          "0.375",
+          "0.4",
+          "0.5"
+        ],
+        "answer": 3,
+        "clue": "Give every number the same number of decimal places by adding zeros, then compare.",
+        "feedback": {
+          "0": {
+            "text": "45 looks bigger than 5, but compare the tenths first: 0.45 has 4 tenths and 0.5 has 5 tenths.",
+            "misconception": "decimals-compare-by-length"
+          },
+          "1": {
+            "text": "More digits doesn't mean bigger. 0.375 has only 3 tenths, while 0.5 has 5 tenths.",
+            "misconception": "decimals-compare-by-length"
+          },
+          "2": {
+            "text": "0.4 is 4 tenths, but 0.5 is 5 tenths, which is more.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3402,
+        "question": "What is 4.5 + 1.25?",
+        "choices": [
+          "5.30",
+          "5.75",
+          "1.70",
+          "6.75"
+        ],
+        "answer": 1,
+        "clue": "Write 4.5 as 4.50 and stack the numbers so that the decimal points sit in one line.",
+        "feedback": {
+          "0": {
+            "text": "The 5 in 4.5 is 5 tenths, not 5 hundredths. Line up the decimal points: 4.50 + 1.25.",
+            "misconception": "decimals-not-aligning-points"
+          },
+          "2": {
+            "text": "The right-hand digits were lined up instead of the decimal points. Write 4.5 as 4.50 and stack the points.",
+            "misconception": "decimals-not-aligning-points"
+          },
+          "3": {
+            "text": "Check the whole numbers: 4 + 1 = 5. Line up the points and add: 4.50 + 1.25.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3403,
+        "question": "Write 0.08 as a percentage.",
+        "choices": [
+          "0.8%",
+          "80%",
+          "8%",
+          "0.08%"
+        ],
+        "answer": 2,
+        "clue": "Percent means out of 100, so multiply by 100: the point jumps two places to the right.",
+        "feedback": {
+          "0": {
+            "text": "The point moved only one place. Multiplying by 100 moves it two places: 0.08 becomes 8%.",
+            "misconception": "decimals-percent-move-one-place"
+          },
+          "1": {
+            "text": "That moved the point three places. 0.08 is 8 hundredths, and multiplying by 100 gives 8%.",
+            "misconception": "decimals-percent-move-one-place"
+          },
+          "3": {
+            "text": "Adding a % sign isn't enough. Multiply by 100 first: 0.08 times 100 = 8.",
+            "misconception": "decimals-percent-move-one-place"
+          }
+        }
+      },
+      {
+        "id": 3404,
+        "question": "A game's price goes up from 40 coins to 50 coins. What is the percentage increase?",
+        "choices": [
+          "20%",
+          "10%",
+          "25%",
+          "125%"
+        ],
+        "answer": 2,
+        "clue": "Find how much it went up by, then divide by the price it started at.",
+        "feedback": {
+          "0": {
+            "text": "That divides by the new price. A percentage change always uses the starting price: 10 out of 40.",
+            "misconception": "decimals-change-uses-new-value"
+          },
+          "1": {
+            "text": "10 coins is the change, but we need it as a percentage of the starting price: 10 out of 40.",
+            "misconception": null
+          },
+          "3": {
+            "text": "125% is the new price compared with the old one. The increase is only the extra part: 10 out of 40.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3405,
+        "question": "After a 20% price rise, a book costs 60 coins. What was the price before the rise?",
+        "choices": [
+          "48",
+          "50",
+          "40",
+          "72"
+        ],
+        "answer": 1,
+        "clue": "The new price is 120% of the old price. Divide by 1.2 to undo the rise.",
+        "feedback": {
+          "0": {
+            "text": "Taking 20% of 60 uses the new price as the base. The rise was 20% of the old price, so divide 60 by 1.2.",
+            "misconception": "decimals-reverse-percent-subtract"
+          },
+          "2": {
+            "text": "Taking 20 away mixes up percent and coins. The new price is 120% of the old one, so divide 60 by 1.2.",
+            "misconception": "decimals-reverse-percent-subtract"
+          },
+          "3": {
+            "text": "The price before a rise must be less than 60. Undo the rise by dividing 60 by 1.2.",
+            "misconception": null
+          }
+        }
+      },
+      {
+        "id": 3406,
+        "question": "A toy costs 100 coins. Its price goes up by 10%, then the new price goes down by 10%. What does it cost now?",
+        "choices": [
+          "110",
+          "100",
+          "101",
+          "99"
+        ],
+        "answer": 3,
+        "clue": "Work it out one step at a time. The 10% off is taken from the new, higher price.",
+        "feedback": {
+          "0": {
+            "text": "110 is the price after the rise. Now take 10% off that new price: 10% of 110 is 11.",
+            "misconception": null
+          },
+          "1": {
+            "text": "The 10% off is worked out on the higher price, 110, so it takes away 11 coins, not 10.",
+            "misconception": "decimals-up-then-down-same"
+          },
+          "2": {
+            "text": "The 10% off is taken from 110, which is 11 coins. Take 11 away from 110 for the final price.",
+            "misconception": null
+          }
+        }
+      }
+    ]
+  }
+}

@@ -27,10 +27,16 @@ from typing import Optional
 
 class StudentSession:
     def __init__(self) -> None:
-        self.active_question: Optional[str] = None
+        # concept -> {"question", "answer", "exact", "id"}: the problem in progress for that topic
+        self.active: dict[str, dict] = {}
+        # concept -> ids of practice questions already asked, so they are not repeated
+        self.asked: dict[str, list[int]] = {}
         self.last_tutor_message_at: Optional[float] = None
         self.last_hint_ladder: dict = {"kind": "none"}
         self.quiz_round: dict[str, int] = {}
+
+    def active_question(self, concept: Optional[str]) -> Optional[str]:
+        return (self.active.get(concept) or {}).get("question") if concept else None
 
 
 _SESSIONS: dict[str, StudentSession] = {}

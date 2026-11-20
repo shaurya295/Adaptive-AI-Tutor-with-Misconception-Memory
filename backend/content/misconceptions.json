@@ -1,0 +1,106 @@
+{
+  "fractions-add-tops-and-bottoms": {
+    "topic": "Fractions",
+    "text": "Adds fractions without a common denominator, often adding tops and bottoms: 1/2 + 1/3 = 2/5."
+  },
+  "fractions-bigger-denominator-bigger": {
+    "topic": "Fractions",
+    "text": "Thinks a bigger denominator (or bigger numbers) makes a bigger fraction, e.g. 1/4 > 1/3."
+  },
+  "fractions-common-denominator-to-multiply": {
+    "topic": "Fractions",
+    "text": "Finds a common denominator before multiplying fractions, which is only needed to add or subtract."
+  },
+  "fractions-flip-wrong-fraction": {
+    "topic": "Fractions",
+    "text": "When dividing, flips the first fraction or both, instead of only the second one."
+  },
+  "fractions-cancel-when-adding": {
+    "topic": "Fractions",
+    "text": "Cross-cancels numbers when adding fractions, a shortcut that only works for multiplying."
+  },
+  "probability-add-instead-of-multiply": {
+    "topic": "Probability",
+    "text": "Adds the chances of independent events that must both happen, instead of multiplying them."
+  },
+  "probability-forget-overlap": {
+    "topic": "Probability",
+    "text": "Adds P(A) and P(B) for an OR question without taking away the overlap that was counted twice."
+  },
+  "probability-gamblers-fallacy": {
+    "topic": "Probability",
+    "text": "Believes past results of a coin or die change the chance of the next independent result."
+  },
+  "probability-no-replacement-same-total": {
+    "topic": "Probability",
+    "text": "Keeps the original counts after picking without putting back, instead of reducing them."
+  },
+  "probability-miscounted-outcomes": {
+    "topic": "Probability",
+    "text": "Miscounts favourable or total outcomes (e.g. favourable over unfavourable), so P can even exceed 1."
+  },
+  "algebra-move-without-sign-change": {
+    "topic": "Algebra",
+    "text": "Moves a term across = without switching to the inverse operation, e.g. x + 5 = 12 gives x = 17."
+  },
+  "algebra-wrong-order-two-step": {
+    "topic": "Algebra",
+    "text": "Divides before subtracting in a two-step equation, undoing the steps in the wrong order."
+  },
+  "algebra-partial-distribution": {
+    "topic": "Algebra",
+    "text": "Multiplies only the first term inside a bracket, e.g. 2(x + 3) = 2x + 3."
+  },
+  "algebra-drop-negative-coefficient": {
+    "topic": "Algebra",
+    "text": "Ignores the minus sign on the number in front of x, e.g. -3x = 12 gives x = 4."
+  },
+  "algebra-less-than-reversal": {
+    "topic": "Algebra",
+    "text": "Writes '4 less than x' as 4 - x instead of x - 4."
+  },
+  "geometry-triangle-angles-360": {
+    "topic": "Geometry",
+    "text": "Uses the wrong angle total for a triangle, often 360 (the total around a point), not 180."
+  },
+  "geometry-slant-height": {
+    "topic": "Geometry",
+    "text": "Uses a slanted side as the height instead of the perpendicular height."
+  },
+  "geometry-diameter-in-area": {
+    "topic": "Geometry",
+    "text": "Uses the diameter instead of the radius in the circle area formula."
+  },
+  "geometry-perimeter-area-mixup": {
+    "topic": "Geometry",
+    "text": "Mixes up perimeter (the distance around a shape) with area (the space inside it)."
+  },
+  "geometry-complementary-supplementary-mixup": {
+    "topic": "Geometry",
+    "text": "Mixes up the 90 degree totals (complementary, right angle) with the 180 degree ones (supplementary, straight line)."
+  },
+  "decimals-compare-by-length": {
+    "topic": "Decimals and Percentages",
+    "text": "Thinks a decimal with more digits is bigger, e.g. 0.35 > 0.7 because 35 > 7."
+  },
+  "decimals-not-aligning-points": {
+    "topic": "Decimals and Percentages",
+    "text": "Lines up the right-hand digits instead of the decimal points when adding or subtracting."
+  },
+  "decimals-percent-move-one-place": {
+    "topic": "Decimals and Percentages",
+    "text": "Does not move the point exactly two places when turning a decimal into a percent, e.g. 0.35 to 3.5%."
+  },
+  "decimals-change-uses-new-value": {
+    "topic": "Decimals and Percentages",
+    "text": "Divides a percentage change by the new value instead of the original value."
+  },
+  "decimals-reverse-percent-subtract": {
+    "topic": "Decimals and Percentages",
+    "text": "Undoes a percentage rise by subtracting a percentage, instead of dividing by the multiplier."
+  },
+  "decimals-up-then-down-same": {
+    "topic": "Decimals and Percentages",
+    "text": "Thinks going up by 10% and then down by 10% gets back to the original amount."
+  }
+}

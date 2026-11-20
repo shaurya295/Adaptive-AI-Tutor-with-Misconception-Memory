@@ -1,19 +1,14 @@
-pandas
-langgraph
-langchain
-langchain-core
-langchain-ollama
-langchain-community
-langchain-text-splitters
-chromadb
-langchain-chroma
-python-dotenv
-pydantic
-streamlit
-sqlalchemy
-pymysql
-ollama
-neo4j
-psycopg2-binary
-fastapi
-uvicorn[standard]
+# Runtime dependencies, pinned to versions tested on Python 3.14 (2026-11-15).
+# Exact versions of everything they pull in are in requirements.lock.
+fastapi==0.163.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.3
+sqlalchemy==2.1.8
+python-dotenv==1.2.4
+pyyaml==6.0.3
+langgraph==1.2.22
+langchain-core==1.8.0
+langchain-ollama==1.1.0
+langchain-text-splitters==1.1.3
+langchain-chroma==1.1.0
+chromadb==1.5.9

@@ -12,34 +12,40 @@ Run: uvicorn backend.api.server:app --reload --port 8000
 
 from __future__ import annotations
 
+import logging
+import re
 import time
+from datetime import timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from backend.agents.orchestrator import tutor_app
-from backend.agents.quiz_agent import grade_quiz_answer
 from backend.agents.tutor_planner import run_explain
-from backend.api.auth import infer_role, is_valid_email
+from backend.api.auth import Caller, current_caller, end_session, infer_role, is_valid_email, own_account, readable_by, require_teacher, start_session
 from backend.api.sessions import get_session
+from backend.content import VARIANTS, get_quiz, grade_quiz, next_practice_question
+from backend.llm import LLMError
 from backend.evals.metrics import compute_all_metrics
 from backend.memory.conversation_store import get_recent_messages, save_message
 from backend.memory.eval_store import get_interactions, set_escalation_warranted
 from backend.memory.graph_viz import build_prerequisite_graph_json
 from backend.memory.quiz_store import (
-    get_or_generate_questions,
     get_round_summary,
     next_round_number,
     record_attempt,
 )
 from backend.memory.spaced_repetition import get_due_reviews, get_schedule, schedule_next_review
 from backend.memory.student_graph_store import load_student_profile, save_student_profile
-from frontend.theme import strategy_to_ladder_level
 
 app = FastAPI(title="Adaptive AI Tutor API")
+logger = logging.getLogger("api")
+
+# How far up the hint ladder each teaching strategy sits (0 = no ladder shown).
+_LADDER_LEVELS = {"retry_prompt": 1, "small_clue": 1, "stronger_hint": 2, "worked_example": 3, "prerequisite_review": 3}
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -53,38 +59,33 @@ class LoginBody(BaseModel):
 
 
 class ChatBody(BaseModel):
-    student_id: str
+    student_id: Optional[str] = None
     concept: str
     message: str
+    explain_only: bool = False      # Free Quest: answer the question, never start or grade a practice problem
 
 
 class QuizStartBody(BaseModel):
-    student_id: str
+    student_id: Optional[str] = None
     concept: str
     variant: str  # "pre" | "post"
 
 
 class QuizSkipBody(BaseModel):
-    student_id: str
+    student_id: Optional[str] = None
     concept: str
     variant: str
-
-
-class QuizAnswer(BaseModel):
-    question_id: int
-    question_text: str
-    answer_text: str
 
 
 class QuizSubmitBody(BaseModel):
-    student_id: str
+    student_id: Optional[str] = None
     concept: str
     variant: str
-    answers: list[QuizAnswer]
+    selected_indices: list[Optional[int]]
 
 
 class EscalationReviewBody(BaseModel):
-    student_id: str
+    student_id: Optional[str] = None
     id: int
     warranted: bool
 
@@ -99,7 +100,7 @@ def _hint_ladder_payload(final_state: dict[str, Any]) -> dict[str, Any]:
     strategy = (final_state.get("tutor_plan_result") or {}).get("applied_strategy") or final_state.get(
         "recommended_strategy"
     )
-    level = strategy_to_ladder_level(strategy)
+    level = _LADDER_LEVELS.get(strategy or "", 0)
     if level == 0:
         return {"kind": "none"}
     return {
@@ -107,6 +108,21 @@ def _hint_ladder_payload(final_state: dict[str, Any]) -> dict[str, Any]:
         "current_index": level - 1,
         "labels": ["Small clue", "Stronger hint", "Worked example"],
     }
+
+
+def _check_variant(variant: str) -> None:
+    if variant not in VARIANTS:
+        raise HTTPException(status_code=400, detail="variant must be 'pre' or 'post'.")
+
+
+def _with_schedule(profile: dict[str, Any], student_id: str) -> dict[str, Any]:
+    """Adds next_review / last_practiced (YYYY-MM-DD) to each mastery entry, as the UI expects."""
+    for row in get_schedule(student_id):
+        entry = (profile.get("concept_mastery") or {}).get(row["concept"])
+        if entry is not None:
+            entry["next_review"] = str(row["next_review_at"])[:10]
+            entry["last_practiced"] = str(row["last_reviewed_at"])[:10]
+    return profile
 
 
 def _round_scores(student_id: str, concept: str, round_number: Optional[int]) -> tuple[Optional[list[int]], Optional[list[int]]]:
@@ -134,13 +150,13 @@ _METRIC_LABELS = {
     "memory_usefulness": "Memory usefulness",
     "hint_quality": "Hint quality",
 }
-_METRIC_DESCRIPTIONS = {
-    "learning_gain": "Average pre-test to post-test score change across completed rounds.",
-    "misconception_recall": "How often a recurring misconception is correctly recognized as one already seen.",
-    "adaptation_quality": "How often the hint ladder escalates (never regresses) as misses build up.",
-    "escalation_precision": "Of turns escalated to a teacher, the fraction that were actually warranted.",
-    "memory_usefulness": "Mastery gain on turns with prior history, vs. a first attempt.",
-    "hint_quality": "Of hint-ladder turns, the fraction whose very next attempt succeeded.",
+_METRIC_DESCRIPTIONS = {   # worded exactly as on the reference's Eval metrics screen
+    "learning_gain": "Avg. pre-test → post-test percentage-point change this session.",
+    "misconception_recall": "Share of flagged prerequisite gaps the system correctly recognized as already-known.",
+    "adaptation_quality": "Share of post-miss turns where hint strength held steady or escalated, never regressed.",
+    "escalation_precision": "Share of teacher-reviewed escalations confirmed as warranted.",
+    "memory_usefulness": "Correctness-rate change, second half vs. first half of each concept's attempts this session.",
+    "hint_quality": "Share of hint-ladder turns generated cleanly, without the answer-leak guard intervening.",
 }
 
 
@@ -161,18 +177,21 @@ def _fmt_metric(key: str, metric: dict[str, Any]) -> dict[str, Any]:
 
 
 def _escalation_row(row: dict[str, Any]) -> dict[str, Any]:
-    if row.get("cheating_risk_detected"):
-        trigger_type = "Cheating risk"
-    elif row.get("distress_detected"):
-        trigger_type = "Distress"
-    else:
-        trigger_type = "Repeated failure"
-    trigger = row.get("teacher_summary") or f"{trigger_type} on {row['concept']}"
+    trigger_type = row.get("trigger_type")
+    if not trigger_type:   # rows logged before trigger_type existed
+        trigger_type = (
+            "Cheating risk" if row.get("cheating_risk_detected")
+            else "Distress" if row.get("distress_detected")
+            else "Repeated failure"
+        )
+    created = row["created_at"]
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
     return {
         "id": row["id"],
-        "time": row["created_at"].strftime("%H:%M"),
+        "time": created.astimezone().strftime("%d %b %H:%M"),
         "topic": row["concept"],
-        "trigger": trigger[:200],
+        "trigger": (row.get("teacher_summary") or f"{trigger_type} on {row['concept']}")[:300],
         "misses": row.get("consecutive_misses_before", 0),
         "trigger_type": trigger_type,
         "warranted": row.get("warranted"),
@@ -184,11 +203,19 @@ def _escalation_row(row: dict[str, Any]) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 
 @app.post("/api/login")
-def login(body: LoginBody) -> dict[str, Any]:
+def login(body: LoginBody, response: Response) -> dict[str, Any]:
     email = body.email.strip().lower()
     if not is_valid_email(email):
         raise HTTPException(status_code=400, detail="Enter a valid email address.")
-    return {"student_id": email, "role": infer_role(email)}
+    role = infer_role(email)
+    start_session(response, email, role)
+    return {"student_id": email, "role": role}
+
+
+@app.post("/api/logout")
+def logout(request: Request, response: Response) -> dict[str, Any]:
+    end_session(request, response)
+    return {"ok": True}
 
 
 # --------------------------------------------------------------------------- #
@@ -196,7 +223,8 @@ def login(body: LoginBody) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 
 @app.get("/api/state")
-def get_state(student_id: str, concept: Optional[str] = None) -> dict[str, Any]:
+def get_state(student_id: Optional[str] = None, concept: Optional[str] = None, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    student_id = readable_by(caller, student_id)
     session = get_session(student_id)
     history = get_recent_messages(student_id)
     messages = (
@@ -219,8 +247,8 @@ def get_state(student_id: str, concept: Optional[str] = None) -> dict[str, Any]:
 
     return {
         "messages": messages,
-        "profile": profile,
-        "active_question": session.active_question,
+        "profile": _with_schedule(profile, student_id),
+        "active_question": session.active_question(concept),
         "pre_test_scores": pre_test_scores,
         "post_test_scores": post_test_scores,
         "due_for_review": due_for_review,
@@ -228,65 +256,101 @@ def get_state(student_id: str, concept: Optional[str] = None) -> dict[str, Any]:
     }
 
 
+_QUESTION_START = re.compile(
+    r"^\s*(what|why|how|can|could|would|explain|tell|is|are|do|does|did|where|who|when|which|should|help|teach|show|give|please|let'?s|i\s+(want|need|would\s+like|'d\s+like))\b",
+    re.I,
+)
+
+
+def looks_like_question(message: str) -> bool:
+    """A message with no numbers that reads as a question (or a request) is not an answer attempt.
+    Short replies without numbers ("I don't know", "no idea") still count as answers, so the
+    tutor can help the student who is stuck."""
+    if re.search(r"\d", message):
+        return False
+    return message.rstrip().endswith("?") or bool(_QUESTION_START.match(message)) or len(message.split()) > 12
+
+
+def _start_practice(session, concept: str) -> Optional[str]:
+    """Makes the next practice question for this topic the problem in progress; returns its text."""
+    asked = session.asked.setdefault(concept, [])
+    q = next_practice_question(concept, asked)
+    if q is None:
+        session.active.pop(concept, None)
+        return None
+    asked.append(q["id"])
+    session.active[concept] = {"question": q["question"], "answer": q["answer"], "exact": bool(q.get("exact")), "id": q["id"]}
+    return q["question"]
+
+
 @app.post("/api/chat")
-def chat(body: ChatBody) -> dict[str, Any]:
+def chat(body: ChatBody, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    body.student_id = own_account(caller, body.student_id)
+    message = body.message.strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Type a message first.")
     session = get_session(body.student_id)
     response_time_seconds = (
         time.time() - session.last_tutor_message_at if session.last_tutor_message_at is not None else None
     )
-
-    save_message(body.student_id, "user", body.message, concept=body.concept)
     profile = load_student_profile(body.student_id)
-
+    active = None if body.explain_only else session.active.get(body.concept)
     escalated = False
-    if session.active_question is None:
-        result = run_explain(
-            current_concept=body.concept,
-            student_question=body.message,
-            student_memory_profile=profile,
-        )
-        reply = result["hint_text"]
-        if result.get("practice_question"):
-            reply += f"\n\n**Try this:** {result['practice_question']}"
-            session.active_question = result["practice_question"]
-        hint_ladder: dict[str, Any] = {"kind": "none"}
-    else:
-        initial_state = {
-            "student_id": body.student_id,
-            "current_question": session.active_question,
-            "current_concept": body.concept,
-            "student_response": body.message,
-            "student_memory_profile": profile,
-            "response_time_seconds": response_time_seconds,
-        }
-        final_state = tutor_app.invoke(initial_state)
+    hint_ladder: dict[str, Any] = {"kind": "none"}
 
-        reply = (
-            final_state.get("hint_text")
-            or final_state.get("teacher_summary")
-            or "I'm not sure how to respond to that — could you rephrase?"
-        )
-        if final_state.get("practice_question"):
-            reply += f"\n\n**Try this:** {final_state['practice_question']}"
-            session.active_question = final_state["practice_question"]
-        # else: keep active_question as-is so the next reply is graded
-        # against the same problem and the hint ladder can escalate.
+    try:
+        if active is not None and looks_like_question(message):
+            # Answer the question and keep the problem open; nothing is graded.
+            result = run_explain(current_concept=body.concept, student_question=message, student_memory_profile=profile)
+            reply = result["hint_text"] + f"\n\nWhen you're ready, back to your problem: **{active['question']}**"
+        elif active is None:
+            result = run_explain(current_concept=body.concept, student_question=message, student_memory_profile=profile)
+            reply = result["hint_text"]
+            question = None if body.explain_only else _start_practice(session, body.concept)
+            if question:
+                reply += f"\n\n**Try this:** {question}"
+        else:
+            final_state = tutor_app.invoke(
+                {
+                    "student_id": body.student_id,
+                    "current_question": active["question"],
+                    "current_concept": body.concept,
+                    "student_response": message,
+                    "student_memory_profile": profile,
+                    "response_time_seconds": response_time_seconds,
+                    "reference_answer": active.get("answer"),
+                    "exact_form": bool(active.get("exact")),
+                }
+            )
+            reply = final_state.get("hint_text") or "I'm not sure how to respond to that. Could you rephrase?"
+            profile = final_state.get("student_memory_profile") or profile
+            escalated = "escalation_result" in final_state
+            hint_ladder = _hint_ladder_payload(final_state)
+            if escalated:
+                session.active.pop(body.concept, None)      # the teacher takes it from here
+            elif "diagnostic_result" not in final_state:    # correct: move on to a new problem
+                question = _start_practice(session, body.concept)
+                if question:
+                    reply += f"\n\n**Try this:** {question}"
+            # otherwise the same problem stays open, so the hint ladder can climb
+    except LLMError as exc:
+        # Nothing was graded or recorded, so an outage never counts against the student.
+        logger.warning("Model unavailable during chat: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="The tutor's AI model isn't responding right now. Your answer was not marked; please try again in a moment.",
+        ) from exc
 
-        updated_profile = final_state.get("student_memory_profile")
-        if updated_profile:
-            profile = updated_profile
-        escalated = "escalation_result" in final_state
-        hint_ladder = _hint_ladder_payload(final_state)
-
+    save_message(body.student_id, "user", message, concept=body.concept)
     save_message(body.student_id, "assistant", reply, concept=body.concept)
     session.last_tutor_message_at = time.time()
     session.last_hint_ladder = hint_ladder
 
     return {
         "reply": reply,
-        "active_question": session.active_question,
+        "active_question": session.active_question(body.concept),
         "hint_ladder": hint_ladder,
-        "profile": profile,
+        "profile": _with_schedule(profile, body.student_id),
         "escalated": escalated,
     }
 
@@ -296,20 +360,23 @@ def chat(body: ChatBody) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 
 @app.post("/api/quiz/start")
-def quiz_start(body: QuizStartBody) -> dict[str, Any]:
+def quiz_start(body: QuizStartBody, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    body.student_id = own_account(caller, body.student_id)
+    _check_variant(body.variant)
     session = get_session(body.student_id)
     if body.concept not in session.quiz_round:
         session.quiz_round[body.concept] = next_round_number(body.student_id, body.concept)
-    questions = get_or_generate_questions(body.concept, n=5)
     return {
         "questions": [
-            {"question_id": q["id"], "question_text": q["question_text"]} for q in questions
+            {"question_id": q["id"], "question": q["question"], "choices": q["choices"]}
+            for q in get_quiz(body.concept, body.variant)
         ]
     }
 
 
 @app.post("/api/quiz/skip")
-def quiz_skip(body: QuizSkipBody) -> dict[str, Any]:
+def quiz_skip(body: QuizSkipBody, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    body.student_id = own_account(caller, body.student_id)
     session = get_session(body.student_id)
     if body.concept not in session.quiz_round:
         session.quiz_round[body.concept] = next_round_number(body.student_id, body.concept)
@@ -317,46 +384,36 @@ def quiz_skip(body: QuizSkipBody) -> dict[str, Any]:
 
 
 @app.post("/api/quiz/submit")
-def quiz_submit(body: QuizSubmitBody) -> dict[str, Any]:
+def quiz_submit(body: QuizSubmitBody, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    body.student_id = own_account(caller, body.student_id)
+    _check_variant(body.variant)
     session = get_session(body.student_id)
     round_number = session.quiz_round.get(body.concept)
     if round_number is None:
         round_number = next_round_number(body.student_id, body.concept)
         session.quiz_round[body.concept] = round_number
 
-    phase = "pre" if body.variant == "pre" else "post"
-    correct_count = 0
-    for answer in body.answers:
-        is_correct = grade_quiz_answer(
-            question_text=answer.question_text,
-            current_concept=body.concept,
-            student_answer=answer.answer_text,
-        )
+    results = grade_quiz(body.concept, body.variant, body.selected_indices)
+    if not results:
+        raise HTTPException(status_code=404, detail="No quiz questions are available for this topic.")
+    for r in results:
         record_attempt(
-            body.student_id,
-            body.concept,
-            round_number,
-            phase,
-            answer.question_id,
-            answer.answer_text,
-            is_correct,
+            body.student_id, body.concept, round_number, body.variant, r["question_id"], r["picked_text"], r["correct"]
         )
-        if is_correct:
-            correct_count += 1
-
-    total = len(body.answers)
-    score = correct_count / total if total else 0.0
+    correct_count = sum(1 for r in results if r["correct"])
+    total = len(results)
 
     if body.variant == "pre":
+        # The placement score seeds mastery only for a topic the student has not
+        # practised yet, so retaking it never wipes progress earned in tutoring.
         profile = load_student_profile(body.student_id)
-        profile.setdefault("concept_mastery", {})
-        profile["concept_mastery"][body.concept] = {"mastery": score, "consecutive_misses": 0}
-        save_student_profile(body.student_id, profile)
-        schedule_next_review(body.student_id, body.concept, score)
+        mastery = profile.setdefault("concept_mastery", {})
+        if body.concept not in mastery:
+            score = correct_count / total
+            mastery[body.concept] = {"mastery": score, "consecutive_misses": 0}
+            save_student_profile(body.student_id, profile)
+            schedule_next_review(body.student_id, body.concept, score)
     else:
-        # Post-test is a measurement, not a mastery seed — mirrors the
-        # existing Streamlit app, which leaves mastery updates to chat
-        # turns (run_memory_update) rather than the quiz view itself.
         session.quiz_round.pop(body.concept, None)
 
     return {"correct": correct_count, "total": total}
@@ -367,43 +424,95 @@ def quiz_submit(body: QuizSubmitBody) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 
 @app.get("/api/profile")
-def get_profile(student_id: str) -> dict[str, Any]:
+def get_profile(student_id: Optional[str] = None, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    student_id = readable_by(caller, student_id)
     return {
-        "profile": load_student_profile(student_id),
+        "profile": _with_schedule(load_student_profile(student_id), student_id),
         "due_for_review": [row["concept"] for row in get_due_reviews(student_id)],
     }
 
 
 @app.get("/api/eval-metrics")
-def eval_metrics(student_id: Optional[str] = None) -> dict[str, Any]:
+def eval_metrics(student_id: Optional[str] = None, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    if student_id or not caller.is_teacher:
+        student_id = readable_by(caller, student_id)   # no student given: a teacher sees the whole class
     metrics = compute_all_metrics(student_id)
     order = ["learning_gain", "misconception_recall", "adaptation_quality", "escalation_precision", "memory_usefulness", "hint_quality"]
     return {"metrics": [_fmt_metric(key, metrics[key]) for key in order]}
 
 
 @app.get("/api/misconception-graph")
-def misconception_graph(concept: str, student_id: Optional[str] = None) -> dict[str, Any]:
+def misconception_graph(concept: str, student_id: Optional[str] = None, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    student_id = readable_by(caller, student_id) if (student_id or not caller.is_teacher) else None
     profile = load_student_profile(student_id) if student_id else {}
     return build_prerequisite_graph_json(concept, profile)
 
 
 @app.get("/api/schedule")
-def schedule(student_id: str) -> dict[str, Any]:
+def schedule(student_id: Optional[str] = None, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    student_id = readable_by(caller, student_id)
     return {"schedule": get_schedule(student_id)}
 
 
 @app.get("/api/escalations")
-def escalations(student_id: str) -> dict[str, Any]:
+def escalations(student_id: str, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    require_teacher(caller)
+    student_id = student_id.strip().lower()
     rows = [r for r in get_interactions(student_id) if r.get("escalated")]
     return {"escalations": [_escalation_row(r) for r in rows]}
 
 
 @app.post("/api/escalations/review")
-def escalations_review(body: EscalationReviewBody) -> dict[str, Any]:
+def escalations_review(body: EscalationReviewBody, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    require_teacher(caller)
     ok = set_escalation_warranted(body.id, body.warranted)
     if not ok:
         raise HTTPException(status_code=404, detail="Escalation not found.")
     return {"ok": True}
+
+
+from backend.api.game_routes import router as game_router  # noqa: E402  (after the routes above)
+
+app.include_router(game_router)
+
+
+@app.get("/api/memory-impact")
+def memory_impact(student_id: str, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    """
+    The "Memory made this better" screen: the same gap, answered once with no history and again
+    after earlier misses. Picks, for the topic with the most wrong answers, the first wrong turn
+    with no prior misses and the latest wrong turn after misses (same misconception when the
+    turns name one). Teacher-only.
+    """
+    require_teacher(caller)
+    rows = [
+        r for r in get_interactions(student_id.strip().lower())
+        if r.get("answer_correct") is False and r.get("response_text") and r.get("question_text")
+    ]
+    by_concept: dict[str, list] = {}
+    for r in rows:
+        by_concept.setdefault(r["concept"], []).append(r)
+    for concept, turns in sorted(by_concept.items(), key=lambda kv: -len(kv[1])):
+        first = next((t for t in turns if t["consecutive_misses_before"] == 0), None)
+        if not first:
+            continue
+        later_pool = [t for t in turns if t["id"] != first["id"] and t["consecutive_misses_before"] >= 1]
+        same_gap = [t for t in later_pool if first.get("identified_misconception") and t.get("identified_misconception") == first["identified_misconception"]]
+        later = (same_gap or later_pool or [None])[-1]
+        if later:
+            misses = later["consecutive_misses_before"]
+            return {
+                "available": True,
+                "concept": concept,
+                "misconception": later.get("identified_misconception") or first.get("identified_misconception"),
+                "first": {"label": "First attempt · no history yet", "question": first["question_text"], "response": first["response_text"]},
+                "later": {
+                    "label": f"Later · after {misses} prior miss{'es' if misses != 1 else ''} on this gap",
+                    "question": later["question_text"],
+                    "response": later["response_text"],
+                },
+            }
+    return {"available": False}
 
 
 # --------------------------------------------------------------------------- #

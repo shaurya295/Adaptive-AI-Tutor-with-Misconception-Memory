@@ -1,0 +1,122 @@
+import * as React from 'react';
+import { getHint, recordAttempt } from '../api/mock';
+import { answerQuestion, finishSession, isMock, startSession } from '../api/client';
+import { DialogBox } from './Dialog';
+import { PixelButton } from './PixelButton';
+import { QuestionTimer } from './QuestionTimer';
+import { HintButton } from './HintButton';
+import { WizardSprite } from './Sprites';
+export const QuizEngine = ({
+  title,
+  questions,
+  studentId,
+  onComplete,
+  timeLimitSec = 30,
+  onUpdateRisk,
+  sessionKind,
+  sessionConcept,
+  onAnswered
+}) => {
+  let [o, s] = (0, React.useState)(0),
+    [c, u] = (0, React.useState)(null),
+    [d, f] = (0, React.useState)(0),
+    [p, m] = (0, React.useState)(!1),
+    [g, _] = (0, React.useState)(!1),
+    v = (0, React.useRef)(performance.now()),
+    b = (0, React.useRef)(0),
+    x = (0, React.useRef)(0),
+    [S, C] = (0, React.useState)(null),
+    [w, ee] = (0, React.useState)(!1),
+    E = questions[o],
+    [key, setKey] = React.useState(null),          // the correct option, as the server reveals it
+    [busy, setBusy] = React.useState(false),
+    sessionRef = React.useRef(null),
+    K = key ?? E.correct;
+  React.useEffect(() => {
+    if (!isMock && sessionKind) startSession(sessionKind, sessionConcept).then(r => { sessionRef.current = r.session_id; }).catch(() => {});
+  }, []);
+  // Real mode: the server grades the answer and says which option was right.
+  const grade = (picked, ms) => {
+    setBusy(true);
+    answerQuestion(E, picked, ms, sessionRef.current).then(res => {
+      setKey(res.correctAnswer);
+      picked == null ? m(!0) : u(picked);
+      res.correct ? f(n => n + 1) : C(res.feedback || null);
+      onAnswered?.(res);
+    }).catch(err => {
+      picked == null ? m(!0) : u(picked);
+      C(`⚠️ ${err.message}`);
+    }).finally(() => setBusy(false));
+  };
+  (0, React.useEffect)(() => {
+    u(null), m(!1), C(null), ee(!1), setKey(null), v.current = performance.now();
+  }, [o]);
+  let te = e => {
+    ee(!0), getHint({
+      student_id: studentId || `anonymous`,
+      concept: E.concept,
+      question: E.text,
+      student_answer: e,
+      correct_answer: E.correct
+    }).then(e => C(e.hint_text)).finally(() => ee(!1));
+  };
+  (0, React.useEffect)(() => {
+    let e = () => {
+      document.hidden && !c && (b.current += 1, onUpdateRisk?.(b.current, x.current));
+    };
+    return document.addEventListener(`visibilitychange`, e), () => document.removeEventListener(`visibilitychange`, e);
+  }, [c, onUpdateRisk]);
+  let ne = e => {
+    if (c || p || busy) return;
+    let t = Math.round(performance.now() - v.current);
+    t < 1500 && (x.current += 1, onUpdateRisk?.(b.current, x.current));
+    if (!isMock) return grade(e, t);
+    let r = e === E.correct;
+    u(e), r ? f(e => e + 1) : te(e), recordAttempt({
+      student_id: studentId || `anonymous`,
+      concept: E.concept,
+      question_id: E.id,
+      correct: r,
+      time_taken_ms: t,
+      hint_used: !1
+    });
+  };
+  return g ? null : <div className="game-screen scanlines" style={{
+    background: `linear-gradient(to bottom, #2a1050, #3d1f6e)`,
+    display: `flex`,
+    flexDirection: `column`,
+    alignItems: `center`,
+    paddingTop: 80,
+    paddingBottom: 40,
+    overflowY: `auto`
+  }}><div className="w-full max-w-2xl px-4"><div className="flex justify-between items-center mb-4"><h1 className="font-pixel text-xs" style={{
+          color: `#ffe94a`,
+          textShadow: `2px 2px 0 #000`
+        }}>{title}</h1><span className="font-pixel text-xs" style={{
+          color: `#00ffee`
+        }}>{"Q "}{o + 1}/{questions.length}</span></div><div className="hp-bar-track w-full mb-4" style={{
+        height: 12
+      }}><div className="hp-bar-fill" style={{
+          "--fill": `${o / questions.length * 100}%`
+        }} /></div><QuestionTimer timeLimitSec={timeLimitSec} paused={!!(c || p)} onTimeout={() => {
+        if (!isMock) return grade(null, timeLimitSec * 1e3);
+        m(!0), te(`(no answer — time ran out)`), recordAttempt({
+          student_id: studentId || `anonymous`,
+          concept: E.concept,
+          question_id: E.id,
+          correct: !1,
+          time_taken_ms: timeLimitSec * 1e3,
+          hint_used: !1
+        });
+      }} /><div className="flex items-end gap-4 mb-6"><div className="flex-shrink-0"><WizardSprite mood={p ? `thinking` : c ? c === K ? `celebrate` : `thinking` : `idle`} size={1.1} /></div><div className="flex-1"><DialogBox speaker="PIXEL — AI TUTOR" text={E.text} /></div></div><div className="grid grid-cols-2 gap-3 mb-4">{E.options.map(e => {
+          let t = `#5b3a8e`;
+          return (c || p) && (e === K ? t = `#4aff91` : e === c && (t = `#ff3355`)), <PixelButton onClick={() => ne(e)} color={t} size="md" className="w-full" disabled={!!(c || p)} key={e}>{e}</PixelButton>;
+        })}</div>{!isMock && !(c || p) && <HintButton key={E.id} questionId={E.id} />}{(c || p) && <div className="flex items-center gap-3 mb-4 slide-up"><WizardSprite mood={c === K ? `celebrate` : `thinking`} size={.7} /><div className="flex-1 border-4 border-black bg-white p-3" style={{
+          boxShadow: `4px 4px 0 #000`
+        }}><p className="font-body text-sm text-gray-900">{p ? `⏰ Time's up! The answer was: ${K}` : c === K ? `🎉 Correct! +1 point!` : `❌ Not quite! Answer: ${K}`}</p></div></div>}{c && c !== K || p ? <div className="flex items-start gap-3 mb-4 slide-up"><div className="text-xl" aria-hidden={!0}>🤖</div><div className="flex-1 border-4 border-black p-3" style={{
+          background: `#fff7d6`,
+          boxShadow: `4px 4px 0 #000`
+        }}>{w ? <p className="font-body text-sm text-gray-700 italic">Pixel is thinking it through…</p> : <p className="font-body text-sm text-gray-900">{S}</p>}</div></div> : null}{(c || p) && <div className="flex justify-center"><PixelButton onClick={() => {
+          o + 1 >= questions.length ? (_(!0), finishSession(sessionRef.current).catch(() => {}), onComplete(d, questions.length)) : s(e => e + 1);
+        }} color="#ff00cc" size="lg">{o + 1 >= questions.length ? `FINISH ▶` : `NEXT ▶`}</PixelButton></div>}</div></div>;
+};
