@@ -213,9 +213,11 @@ def run_explain(current_concept: str, student_question: str, student_memory_prof
     """
     weak = ", ".join((student_memory_profile or {}).get("weak_prerequisites") or [])
     prompt = (
-        "TASK: Explain a concept to the student in at most 90 words, with one tiny example.\n"
-        f"Topic: {current_concept}\n"
+        "TASK: Answer the student's question in at most 90 words, with one tiny example.\n"
+        f"The student is currently practising: {current_concept}\n"
         f'Student asked: """{student_question}"""\n'
+        "Answer what they actually asked, even if it is about a different maths topic than the one they are practising. "
+        "If the question is not about maths, say kindly in one sentence that you can only help with maths, and suggest a maths question about the topic they are practising.\n"
         + (f"The student has struggled with: {weak}. Connect to that if it helps.\n" if weak else "")
         + "Do not ask a question at the end; a practice problem follows your explanation."
     )

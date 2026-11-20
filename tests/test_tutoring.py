@@ -153,3 +153,51 @@ def test_error_type_rules(question, answer, key, model_label, expected):
     from backend.agents.evaluator_agent import classify_error
 
     assert classify_error(question, answer, key, model_label) == expected
+
+
+@pytest.mark.parametrize(
+    "message, expected",
+    [
+        ("Can you explain fractions?", True), ("why do we need a common denominator", True),
+        ("what is the capital of france", True), ("2/6", False), ("is it 5/6?", False),
+        ("I don't know", False), ("no idea", False), ("idk", False),
+        ("Teach me probability", True), ("show me an example", True), ("please explain again", True),
+        ("I want to learn algebra", True), ("lets do geometry", True), ("bananas are yellow", False),
+    ],
+)
+def test_question_or_answer(message, expected):
+    from backend.api.server import looks_like_question
+
+    assert looks_like_question(message) is expected
+
+
+def test_mentions_key():
+    from backend.agents.evaluator_agent import mentions_key
+
+    assert mentions_key("is it 5/6?", "5/6") and mentions_key("I got 10/12", "5/6") and mentions_key("0.75", "75%")
+    assert not mentions_key("the capital of France is Paris", "5/6") and not mentions_key("it is 4/6", "5/6")
+    assert mentions_key("anything", "a right angle")          # word keys are left to the model
+
+
+def test_question_while_a_problem_is_open_is_not_graded(client):
+    sid = "asks-questions@example.com"
+    _chat(client, sid, "Teach me probability", concept="Probability")
+    before = client.get("/api/profile").json()["profile"]["concept_mastery"]
+    r = _chat(client, sid, "Can you explain fractions instead?", concept="Probability").json()
+    assert "back to your problem" in r["reply"] and r["active_question"] and r["hint_ladder"] == {"kind": "none"}
+    assert client.get("/api/profile").json()["profile"]["concept_mastery"] == before       # nothing recorded
+
+
+def test_model_cannot_call_an_unrelated_reply_correct(client, monkeypatch):
+    sid = "random-reply@example.com"
+    _chat(client, sid, "Teach me fractions")
+    real_call = llm._call
+
+    def says_correct(task, user, schema, *a, **k):
+        if task == "assess":
+            return '{"verdict": "correct", "error_type": "none", "misconception": "", "missing_prerequisite": "none", "confidence": 0.9, "distress": false}'
+        return real_call(task, user, schema, *a, **k)
+
+    monkeypatch.setattr(llm, "_call", says_correct)
+    r = _chat(client, sid, "bananas are yellow").json()
+    assert not r["reply"].startswith(("That's right", "Correct", "Spot on", "Yes, that's it")) and r["hint_ladder"]["kind"] == "steps"

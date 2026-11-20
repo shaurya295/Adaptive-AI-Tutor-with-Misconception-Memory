@@ -13,6 +13,7 @@ Run: uvicorn backend.api.server:app --reload --port 8000
 from __future__ import annotations
 
 import logging
+import re
 import time
 from datetime import timezone
 from pathlib import Path
@@ -255,6 +256,21 @@ def get_state(student_id: Optional[str] = None, concept: Optional[str] = None, c
     }
 
 
+_QUESTION_START = re.compile(
+    r"^\s*(what|why|how|can|could|would|explain|tell|is|are|do|does|did|where|who|when|which|should|help|teach|show|give|please|let'?s|i\s+(want|need|would\s+like|'d\s+like))\b",
+    re.I,
+)
+
+
+def looks_like_question(message: str) -> bool:
+    """A message with no numbers that reads as a question (or a request) is not an answer attempt.
+    Short replies without numbers ("I don't know", "no idea") still count as answers, so the
+    tutor can help the student who is stuck."""
+    if re.search(r"\d", message):
+        return False
+    return message.rstrip().endswith("?") or bool(_QUESTION_START.match(message)) or len(message.split()) > 12
+
+
 def _start_practice(session, concept: str) -> Optional[str]:
     """Makes the next practice question for this topic the problem in progress; returns its text."""
     asked = session.asked.setdefault(concept, [])
@@ -283,7 +299,11 @@ def chat(body: ChatBody, caller: Caller = Depends(current_caller)) -> dict[str, 
     hint_ladder: dict[str, Any] = {"kind": "none"}
 
     try:
-        if active is None:
+        if active is not None and looks_like_question(message):
+            # Answer the question and keep the problem open; nothing is graded.
+            result = run_explain(current_concept=body.concept, student_question=message, student_memory_profile=profile)
+            reply = result["hint_text"] + f"\n\nWhen you're ready, back to your problem: **{active['question']}**"
+        elif active is None:
             result = run_explain(current_concept=body.concept, student_question=message, student_memory_profile=profile)
             reply = result["hint_text"]
             question = None if body.explain_only else _start_practice(session, body.concept)

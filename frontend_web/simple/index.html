@@ -515,7 +515,6 @@
     api('/api/login', {method: 'POST', body: {email: email}}).then(function(res){
       state.studentId = res.student_id;
       state.role = res.role;
-      localStorage.setItem('mentora_student_id', res.student_id);
       document.getElementById('loginScreen').style.display = 'none';
       if (state.role === 'teacher'){
         enterSimpleDashboard();
@@ -552,7 +551,7 @@
   function signOut(){
     fetch('/api/logout', {method: 'POST'}).catch(function(){});
     state.studentId = null; state.role = null; state.currentConcept = null;
-    localStorage.removeItem('mentora_student_id');
+    try { localStorage.removeItem('mentora_student_id'); } catch (e) {}   // left over from older versions
     document.getElementById('appShell').style.display = 'none';
     document.getElementById('chooserScreen').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'grid';
@@ -1040,16 +1039,15 @@
   // from the gamified dashboard via "Sign out", or a page refresh).
   // ===================================================================
   (function boot(){
-    var params = new URLSearchParams(window.location.search);
-    var resumeId = params.get('student_id') || localStorage.getItem('mentora_student_id');
-    if (!resumeId) return;
-    api('/api/login', {method: 'POST', body: {email: resumeId}}).then(function(res){
-      state.studentId = res.student_id;
-      state.role = res.role;
-      localStorage.setItem('mentora_student_id', res.student_id);
+    // Resume only from the server session (an HttpOnly cookie that SIGN OUT deletes). The email is
+    // never stored in the browser, so nobody is signed back in without typing it.
+    try { localStorage.removeItem('mentora_student_id'); } catch (e) {}
+    api('/api/me').then(function(me){
+      state.studentId = me.student_id;
+      state.role = me.role;
       document.getElementById('loginScreen').style.display = 'none';
       enterSimpleDashboard();
-    }).catch(function(){ /* stale/invalid id in storage -- fall back to login screen */ });
+    }).catch(function(){ /* not signed in: show the login screen */ });
   })();
 </script>
 

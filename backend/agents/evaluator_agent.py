@@ -125,6 +125,15 @@ def assess(question: str, answer: str, concept: str, key: Optional[str]) -> dict
     }
 
 
+def mentions_key(answer: str, key: Optional[str]) -> bool:
+    """Does the reply contain the key's value anywhere (e.g. "is it 5/6?" for 5/6)? True when the key is not a number."""
+    want = parse_value(key) if key else None
+    if want is None:
+        return True
+    tokens = re.findall(r"-?\d+\s*/\s*\d+|-?\d*\.\d+%?|-?\d+%?", answer)
+    return any(parse_value(tok) == want or parse_value(tok.rstrip("%")) == want for tok in tokens)
+
+
 def classify_error(question: str, answer: str, key: Optional[str], model_label: str) -> str:
     """
     Why is a wrong answer wrong? Small models call almost every mistake "careless", so for a
@@ -169,6 +178,8 @@ def run_evaluator(state: dict) -> dict:
         )
     else:
         assessment = assess(current_question, student_response, current_concept, key)
+        if matched is None and assessment["verdict"] == AnswerQuality.CORRECT.value and not mentions_key(student_response, key):
+            assessment["verdict"] = AnswerQuality.INCORRECT.value   # the model cannot call it right if the right value is nowhere in the reply
         if matched is False:
             assessment["verdict"] = AnswerQuality.INCORRECT.value      # the key outranks the model's opinion
         if assessment["verdict"] != AnswerQuality.CORRECT.value:

@@ -25,7 +25,9 @@ export const SCREEN_FLOW = [`landing`, `signin`, `mainmenu`, `welcome`, `avatars
 export function App() {
   let [e, t] = (0, React.useState)(initialScreen(`landing`)),
     hud = useHud(),
-    newPlayer = React.useRef(true),          // first time this name signs in -> onboarding (welcome, avatar)
+    newPlayer = React.useRef(true),
+    [account, setAccount] = React.useState(null),   // real mode: who is signed in (null = nobody)
+    [checked, setChecked] = React.useState(isMock),  // real mode: finished asking the server who is signed in          // first time this name signs in -> onboarding (welcome, avatar)
     n = hud.coins,
     r = hud.xp_pct,
     [dueCount, setDueCount] = React.useState(isMock ? 2 : 0),
@@ -47,11 +49,13 @@ export function App() {
     if (!isMock) {
       // Real mode: whoever is signed in (from the Simple dashboard or an earlier game) goes straight to the menu.
       getMe().then(me => {
+        setChecked(true);
         if (!me) return;
+        setAccount(me.student_id);
         o(t => t.find(t => t.id === me.student_id) ? t : [...t, { id: me.student_id, name: me.display_name, avatarId: me.companion_id || `wizard` }]);
         c(me.student_id), d(me.display_name), me.companion_id && p(me.companion_id), setDueCount(me.due_count);
         t(initialScreen(`mainmenu`));
-      }).catch(() => {});
+      }).catch(() => setChecked(true));
       return;
     }
     let e = new URLSearchParams(window.location.search).get(`student_id`) || localStorage.getItem(`mentora_student_id`);
@@ -77,7 +81,7 @@ export function App() {
       if (!isMock) {
         guestSignIn(e).then(res => {
           o(r => [...r.filter(x => x.id !== res.student_id), { id: res.student_id, name: e, avatarId: f }]);
-          c(res.student_id);
+          c(res.student_id), setAccount(res.student_id);
           getMe();
         }).catch(() => {});
         return;
@@ -105,12 +109,22 @@ export function App() {
     },
     oe = (e, t) => {},
     k = a.find(e => e.id === s)?.name || u || `anonymous`;
+  // Signed in already (e.g. from the Mentora login): SIGN OUT replaces SIGN IN. Email accounts go back to
+  // the Mentora login page; game guests go back to the game's start screen.
+  function signOutAndLeave() {
+    signOut().catch(() => {}).finally(() => {
+      if (account && !account.endsWith(`@guest.pixeltutor`)) window.location.href = `/`;
+      else { setAccount(null), o([]), c(``), d(``), t(`landing`); }
+    });
+  }
+  // Until the server has said who is signed in, show the empty game background instead of flashing the start screen.
+  if (!checked) return <div style={{ minHeight: `100vh`, background: `#1a0a2e` }} />;
   return <div style={{
     minHeight: `100vh`,
     background: `#1a0a2e`
   }}>{te && <Hud coins={n} level={hud.level} xp={r} goTo={D} playerName={u} />}<div style={{
       paddingTop: te ? 48 : 0
-    }}>{e === `landing` && <LandingScreen next={E} />}{e === `signin` && <SignInScreen next={() => t(newPlayer.current ? `welcome` : `mainmenu`)} back={() => t(`landing`)} onSetName={ne} />}{e === `mainmenu` && <MainMenuScreen goTo={D} />}{e === `welcome` && <WelcomeScreen next={E} />}{e === `avatarselect` && <AvatarSelectScreen next={E} onSelect={O} />}{e === `howitworks` && <HowItWorksScreen next={E} />}{e === `pretest` && <PreTestScreen studentId={k} onComplete={ie} onUpdateRisk={ee} />}{e === `lesson` && <LessonScreen next={E} studentId={k} onWrongStreak={w} onUpdateRisk={ee} />}{e === `posttest` && <PostTestScreen studentId={k} preScore={m} preTotal={g} onComplete={oe} onUpdateRisk={ee} onClaimReward={() => D(`sessioncomplete`)} />}{e === `progress` && <ProgressScreen next={E} studentId={k} />}{e === `sessioncomplete` && <SessionCompleteScreen next={E} />}{e === `reward` && <RewardScreen goTo={D} />}{e === `freequest` && <FreeQuestScreen goTo={D} setRobotMood={i} />}{e === `leaderboard` && <LeaderboardScreen goTo={D} profiles={a} activeProfileId={s} />}{e === `evalmetrics` && <EvalMetricsScreen goTo={D} sessionRiskScore={S} />}{e === `misconceptions` && <MisconceptionsScreen goTo={D} studentId={k} />}{e === `spacedrepeat` && <SpacedReviewScreen goTo={D} studentId={k} />}{e === `switchstudent` && <SwitchStudentScreen goTo={D} profiles={isMock ? a : a.filter(x => x.id === s)} activeProfileId={s} onSwitch={e => {
+    }}>{e === `landing` && <LandingScreen next={E} />}{e === `signin` && <SignInScreen next={() => t(newPlayer.current ? `welcome` : `mainmenu`)} back={() => t(`landing`)} onSetName={ne} />}{e === `mainmenu` && <MainMenuScreen goTo={D} onSignOut={!isMock && account ? signOutAndLeave : undefined} />}{e === `welcome` && <WelcomeScreen next={E} />}{e === `avatarselect` && <AvatarSelectScreen next={E} onSelect={O} />}{e === `howitworks` && <HowItWorksScreen next={E} />}{e === `pretest` && <PreTestScreen studentId={k} onComplete={ie} onUpdateRisk={ee} />}{e === `lesson` && <LessonScreen next={E} studentId={k} onWrongStreak={w} onUpdateRisk={ee} />}{e === `posttest` && <PostTestScreen studentId={k} preScore={m} preTotal={g} onComplete={oe} onUpdateRisk={ee} onClaimReward={() => D(`sessioncomplete`)} />}{e === `progress` && <ProgressScreen next={E} studentId={k} />}{e === `sessioncomplete` && <SessionCompleteScreen next={E} />}{e === `reward` && <RewardScreen goTo={D} />}{e === `freequest` && <FreeQuestScreen goTo={D} setRobotMood={i} />}{e === `leaderboard` && <LeaderboardScreen goTo={D} profiles={a} activeProfileId={s} />}{e === `evalmetrics` && <EvalMetricsScreen goTo={D} sessionRiskScore={S} />}{e === `misconceptions` && <MisconceptionsScreen goTo={D} studentId={k} />}{e === `spacedrepeat` && <SpacedReviewScreen goTo={D} studentId={k} />}{e === `switchstudent` && <SwitchStudentScreen goTo={D} profiles={isMock ? a : a.filter(x => x.id === s)} activeProfileId={s} onSwitch={e => {
         c(e);
         let t = a.find(t => t.id === e);
         t && d(t.name);
