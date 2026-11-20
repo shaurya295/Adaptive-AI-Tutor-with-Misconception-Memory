@@ -39,16 +39,6 @@ logging.basicConfig(level=logging.INFO)
 _engine = get_engine()
 _metadata = MetaData()
 
-quiz_questions = Table(
-    "quiz_questions",
-    _metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("concept", String(256), nullable=False, index=True),
-    Column("question_text", Text, nullable=False),
-    Column("reference_answer", Text, nullable=False),
-    Column("created_at", DateTime, nullable=False),
-)
-
 quiz_attempts = Table(
     "quiz_attempts",
     _metadata,
@@ -71,71 +61,6 @@ def init_db() -> None:
 
 # Tables must exist before any read/write call.
 init_db()
-
-
-def _read_cached_questions(concept: str, n: int) -> list[dict[str, Any]]:
-    with _engine.connect() as conn:
-        stmt = (
-            select(
-                quiz_questions.c.id,
-                quiz_questions.c.question_text,
-                quiz_questions.c.reference_answer,
-            )
-            .where(quiz_questions.c.concept == concept)
-            .limit(n)
-        )
-        return [dict(row) for row in conn.execute(stmt).mappings().all()]
-
-
-def get_or_generate_questions(concept: str, n: int = 5) -> list[dict[str, Any]]:
-    """
-    Returns up to n cached questions for a concept. If the cache doesn't
-    have enough yet, tops it up via the quiz generator agent
-    (backend/agents/quiz_agent.py) before returning.
-
-    Returns whatever is available (possibly fewer than n, possibly [])
-    rather than raising — a quiz-generation hiccup must not crash the UI.
-    """
-    try:
-        rows = _read_cached_questions(concept, n)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("get_or_generate_questions read failed for concept=%r: %s", concept, exc)
-        rows = []
-
-    if len(rows) >= n:
-        return rows[:n]
-
-    needed = n - len(rows)
-    from backend.agents.quiz_agent import generate_quiz_questions
-
-    try:
-        new_questions = generate_quiz_questions(concept, needed)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Quiz generation failed for concept=%r: %s", concept, exc)
-        new_questions = []
-
-    if new_questions:
-        try:
-            with _engine.begin() as conn:
-                for q in new_questions:
-                    conn.execute(
-                        quiz_questions.insert().values(
-                            concept=concept,
-                            question_text=q["question_text"],
-                            reference_answer=q["reference_answer"],
-                            created_at=datetime.now(timezone.utc),
-                        )
-                    )
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Failed to cache generated questions for concept=%r: %s", concept, exc)
-
-    try:
-        # Re-read so every returned row (including the ones just generated) has a real id.
-        rows = _read_cached_questions(concept, n)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("get_or_generate_questions re-read failed for concept=%r: %s", concept, exc)
-
-    return rows
 
 
 def record_attempt(

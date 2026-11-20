@@ -18,6 +18,8 @@ async function api(path, { method = 'GET', body } = {}) {
     headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
     credentials: 'same-origin',
+  }).catch(() => {
+    throw new ApiError(0, "Can't reach the tutor server. Is it running? Start it with ./run.sh real, then reload.");
   });
   let data = null;
   try { data = await res.json(); } catch { /* empty body */ }

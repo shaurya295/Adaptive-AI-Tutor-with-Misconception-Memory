@@ -455,7 +455,9 @@
       fetchOpts.headers['Content-Type'] = 'application/json';
       fetchOpts.body = JSON.stringify(body);
     }
-    return fetch(path, fetchOpts).then(function(res){
+    return fetch(path, fetchOpts).catch(function(){
+      throw new Error("Can't reach the tutor server. Is it running? Start it with ./run.sh real, then reload this page.");
+    }).then(function(res){
       return res.json().then(function(data){
         if (!res.ok) throw new Error(data.detail || ('Request failed (' + res.status + ')'));
         return data;
