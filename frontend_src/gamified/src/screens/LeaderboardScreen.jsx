@@ -21,7 +21,7 @@ export const LeaderboardScreen = ({
   const localIds = new Set(profiles.map(p => p.id));
   const realRows = (entries || [])
     .filter(e => r !== `friends` || e.is_me || localIds.has(e.student_id))
-    .map((e, idx) => ({ rank: idx + 1, name: e.name, xp: e.xp, streak: e.streak, badge: e.badge, avatar: avatarOf(e.avatar), isMe: e.is_me }));
+    .map((e, idx) => ({ rank: idx + 1, name: e.is_me ? `${e.name} ◀ YOU` : e.name, xp: e.xp, streak: e.streak, badge: e.badge, avatar: avatarOf(e.avatar), isMe: e.is_me }));
   const rows = isMock ? LEADERBOARD : realRows;
   const ticker = isMock ? TICKER_ITEMS : realRows.length
     ? realRows.flatMap(e => [`${e.name} has ${e.xp.toLocaleString()} XP! ⭐`, ...(e.streak > 1 ? [`${e.name} is on a ${e.streak}-day streak! 🔥`] : [])])
@@ -43,7 +43,7 @@ export const LeaderboardScreen = ({
       label: `FRIENDS`,
       color: `#4aff91`
     }],
-    o = !isMock ? realRows.filter(e => e.isMe).map(e => ({ ...e, isLocal: !0, isActive: !0 })) : profiles.map((e, t) => ({
+    o = !isMock ? [] : profiles.map((e, t) => ({
       rank: 11 + t,
       name: e.name.toUpperCase(),
       xp: 1240 + t * 300,

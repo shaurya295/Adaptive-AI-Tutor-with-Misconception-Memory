@@ -29,11 +29,11 @@ export const ProgressScreen = ({
       color: `#ff8c1a`
     }, {
       label: `ACCURACY`,
-      value: `🎯 ${i.rolling_accuracy || 84}%`,
+      value: `🎯 ${isMock ? i.rolling_accuracy || 84 : Math.round(i.rolling_accuracy ?? 0)}%`,
       color: `#00ffee`
     }, {
       label: `AVG TIME`,
-      value: `⏱ ${i.rolling_avg_time_ms ? Math.round(i.rolling_avg_time_ms / 1e3) : 12}s`,
+      value: `⏱ ${i.rolling_avg_time_ms ? Math.round(i.rolling_avg_time_ms / 1e3) : isMock ? 12 : 0}s`,
       color: `#4aff91`
     }, {
       label: `COINS`,

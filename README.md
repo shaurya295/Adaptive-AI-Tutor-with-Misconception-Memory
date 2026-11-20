@@ -89,8 +89,8 @@ Browser ── Mentora (frontend_web/simple)    ┐
 
 | Action | Time |
 |---|---|
-| Wrong answer in chat | ~10–15 s |
-| Explanation | ~10–20 s |
+| Wrong answer in chat | ~15–25 s |
+| Explanation | ~15–25 s |
 | Quiz and game answers | instant |
 
 Benchmark another model with `./run.sh bench <model>`.
