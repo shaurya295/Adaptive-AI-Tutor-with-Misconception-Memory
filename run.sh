@@ -29,6 +29,12 @@ case "$cmd" in
     "$PY" -m pip install --upgrade pip
     if [ "${1:-}" = "--dev" ]; then "$PY" -m pip install -r requirements-dev.txt; else "$PY" -m pip install -r requirements.txt; fi
     [ -f .env ] || cp .env.example .env
+    # Build the curriculum search index now, so the first hint is not slowed down by it.
+    if curl -s -m 3 http://localhost:11434/api/tags >/dev/null 2>&1; then
+      echo "Building the curriculum search index (one time, about half a minute)..."
+      "$PY" -c "from backend.rag.indexer import get_index; get_index()" >/dev/null 2>&1 \
+        && echo "Index ready." || echo "Index not built (it will be built on the first hint instead)."
+    fi
     echo "Setup done. Next:  ./run.sh doctor"
     ;;
   real)
