@@ -155,6 +155,8 @@ def run_memory_update(state: dict) -> dict:
             identified_misconception=diagnostic_result.get("identified_misconception"),
             applied_strategy=applied_strategy,
             teacher_summary=state.get("teacher_summary"),
+            question_text=state.get("current_question"),
+            response_text=state.get("hint_text"),
             answer_correct=was_correct,
             missing_prerequisite=missing_prereq,
             prereq_known_before=prereq_known_before if missing_prereq else None,

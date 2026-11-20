@@ -456,6 +456,45 @@ from backend.api.game_routes import router as game_router  # noqa: E402  (after 
 app.include_router(game_router)
 
 
+@app.get("/api/memory-impact")
+def memory_impact(student_id: str, caller: Caller = Depends(current_caller)) -> dict[str, Any]:
+    """
+    The "Memory made this better" screen: the same gap, answered once with no history and again
+    after earlier misses. Picks, for the topic with the most wrong answers, the first wrong turn
+    with no prior misses and the latest wrong turn after misses (same misconception when the
+    turns name one). Teacher-only.
+    """
+    require_teacher(caller)
+    rows = [
+        r for r in get_interactions(student_id.strip().lower())
+        if r.get("answer_correct") is False and r.get("response_text") and r.get("question_text")
+    ]
+    by_concept: dict[str, list] = {}
+    for r in rows:
+        by_concept.setdefault(r["concept"], []).append(r)
+    for concept, turns in sorted(by_concept.items(), key=lambda kv: -len(kv[1])):
+        first = next((t for t in turns if t["consecutive_misses_before"] == 0), None)
+        if not first:
+            continue
+        later_pool = [t for t in turns if t["id"] != first["id"] and t["consecutive_misses_before"] >= 1]
+        same_gap = [t for t in later_pool if first.get("identified_misconception") and t.get("identified_misconception") == first["identified_misconception"]]
+        later = (same_gap or later_pool or [None])[-1]
+        if later:
+            misses = later["consecutive_misses_before"]
+            return {
+                "available": True,
+                "concept": concept,
+                "misconception": later.get("identified_misconception") or first.get("identified_misconception"),
+                "first": {"label": "First attempt · no history yet", "question": first["question_text"], "response": first["response_text"]},
+                "later": {
+                    "label": f"Later · after {misses} prior miss{'es' if misses != 1 else ''} on this gap",
+                    "question": later["question_text"],
+                    "response": later["response_text"],
+                },
+            }
+    return {"available": False}
+
+
 # --------------------------------------------------------------------------- #
 # Static frontends (mounted last so /api/* routes above take precedence)
 # --------------------------------------------------------------------------- #

@@ -93,3 +93,19 @@ def test_live_turns_feed_the_metrics_and_the_escalation_review(client):
 def test_review_only_applies_to_escalations(client):
     sign_in(client, TEACHER)
     assert client.post("/api/escalations/review", json={"student_id": "x", "id": 999999, "warranted": True}).status_code == 404
+
+
+def test_memory_impact_shows_two_real_turns(client):
+    sid = "memory-impact@example.com"
+    sign_in(client, TEACHER)
+    assert client.get("/api/memory-impact", params={"student_id": sid}).json() == {"available": False}
+    _chat(client, sid, "Teach me fractions")
+    _chat(client, sid, "2/6")                       # first miss, no history
+    _chat(client, sid, "1/6")                       # later miss, after one
+    sign_in(client, TEACHER)
+    data = client.get("/api/memory-impact", params={"student_id": sid}).json()
+    assert data["available"] and data["concept"] == "Fractions"
+    assert data["first"]["label"].startswith("First attempt") and data["first"]["question"] == "What is 1/2 + 1/4?"
+    assert data["later"]["label"] == "Later · after 1 prior miss on this gap" and data["later"]["response"]
+    sign_in(client, sid)
+    assert client.get("/api/memory-impact", params={"student_id": sid}).status_code == 403      # teacher-only

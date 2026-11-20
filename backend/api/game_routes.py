@@ -247,6 +247,7 @@ def answer(body: AnswerBody, caller: Caller = WHO) -> dict[str, Any]:
         consecutive_misses_before=misses_before, mastery_before=mastery_before, mastery_after=entry["mastery"],
         answer_quality="correct" if correct else "incorrect", identified_misconception=miscon_text,
         teacher_summary=summary, answer_correct=correct, trigger_type="Repeated failure" if escalated else None,
+        question_text=q["question"], response_text=None if correct else (fb or {}).get("text"),
     )
     new_badges = []
     if entry["mastery"] >= game.BADGE_MASTERY and store.award_badge(sid, game.badge_for(concept)):

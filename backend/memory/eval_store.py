@@ -73,6 +73,8 @@ interaction_log = Table(
     Column("leak_guard_triggered", Boolean, nullable=True),
     Column("hint_level", Integer, nullable=True),
     Column("trigger_type", String(32), nullable=True),
+    Column("question_text", Text, nullable=True),
+    Column("response_text", Text, nullable=True),
 )
 
 # Columns added after this table's original creation — each one needs an
@@ -90,6 +92,8 @@ _COLUMN_MIGRATIONS = [
     ("leak_guard_triggered", "BOOLEAN"),
     ("hint_level", "INTEGER"),
     ("trigger_type", "VARCHAR(32)"),
+    ("question_text", "TEXT"),
+    ("response_text", "TEXT"),
 ]
 
 
@@ -137,6 +141,8 @@ def record_interaction(
     leak_guard_triggered: Optional[bool] = None,
     hint_level: Optional[int] = None,
     trigger_type: Optional[str] = None,
+    question_text: Optional[str] = None,
+    response_text: Optional[str] = None,
 ) -> None:
     """Records one tutoring turn. Failures are logged, not raised — this
     must never break the tutoring graph."""
@@ -167,6 +173,8 @@ def record_interaction(
                     leak_guard_triggered=leak_guard_triggered,
                     hint_level=hint_level,
                     trigger_type=trigger_type,
+                    question_text=question_text,
+                    response_text=response_text,
                 )
             )
     except Exception as exc:  # noqa: BLE001
