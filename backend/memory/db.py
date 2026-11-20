@@ -15,13 +15,15 @@ to real Postgres with no code changes.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 from sqlalchemy import Engine, create_engine
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///backend/data/conversations.db")
+_DEFAULT_DB = Path(__file__).resolve().parents[1] / "data" / "conversations.db"   # backend/data, wherever the app is started from
+DATABASE_URL = os.getenv("DATABASE_URL") or f"sqlite:///{_DEFAULT_DB}"
 
 # SQLite needs its parent directory to exist before the file can be created.
 if DATABASE_URL.startswith("sqlite:///"):

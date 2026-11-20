@@ -24,7 +24,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGES = ["fastapi", "uvicorn", "pydantic", "sqlalchemy", "dotenv", "langgraph", "langchain_core", "langchain_ollama", "langchain_chroma"]
-MODEL_VARS = ["TUTOR_MODEL", "EVALUATOR_AGENT_MODEL", "DIAGNOSTIC_AGENT_MODEL", "TUTOR_PLANNER_MODEL", "ESCALATION_AGENT_MODEL"]
+MODEL_VARS = ["TUTOR_MODEL", "TUTOR_PLANNER_MODEL"]
 
 OK, WARN, BAD = "ok", "warn", "bad"
 MARK = {OK: "✓", WARN: "!", BAD: "✗"}

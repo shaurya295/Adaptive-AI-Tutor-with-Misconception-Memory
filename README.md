@@ -1,174 +1,117 @@
 # Adaptive AI Tutor with Misconception Memory
 
-An adaptive tutoring system built on LangGraph: an Evaluator Agent scores each
-student response, a Diagnostic Agent classifies *why* wrong answers are
-wrong, a Tutor Planner generates hints/explanations (grounded by RAG over a
-curriculum knowledge base and a Neo4j prerequisite graph), and an Escalation
-Agent loops in a teacher when a student is stuck or distressed. Conversation
-history and student mastery persist across sessions.
+A maths tutor that remembers *why* each student gets things wrong, and adapts to it.
+It began as a hackathon-winning project at the IIT Mandi Himshikhar AI & ML programme and has since been rebuilt into a complete, tested app.
 
-## Architecture at a glance
+- **Two dashboards, one student record.**
+  - **Mentora:** a calm "Simple" dashboard with a chat tutor.
+  - **PixelTutor:** a retro "Gamified" dashboard with lessons, XP, coins, hearts, badges and a leaderboard.
+  - Progress made in one shows up in the other.
+- **Misconception memory.** Every wrong answer is tied to a named misconception from the curriculum, such as "adds the tops and the bottoms". The tutor brings up a gap the student has shown before.
+- **A hint ladder.** After a miss the tutor gives a small clue, then a stronger hint, then a worked example. A careless slip only gets a "recheck this step" nudge.
+- **Teacher view.** Teachers can see:
+  - each student's mastery and weak prerequisites;
+  - six evaluation metrics;
+  - the prerequisite graph;
+  - an escalation feed, raised after repeated misses, distress, or replies typed faster than a person can write them;
+  - real before/after examples of what the memory changed.
+- **Runs on a laptop.** A small local model (`gemma4:e2b` through Ollama) writes explanations and hints. Quizzes, the game and clearly right answers are graded instantly without the model.
 
-```
-START -> evaluator -> [correct + confident?] -> tutor_planner (praise + next Q)
-                    -> [not confident/incorrect] -> diagnostic -> [escalate?]
-                                                        -> escalator (teacher handoff)
-                                                        -> tutor_planner (hint ladder, RAG-grounded)
-                                                                -> memory_update -> END
-```
+## Quick start (Ubuntu)
 
-Data stores:
-- **Neo4j** — student mastery graph + concept prerequisite graph (`backend/memory/`)
-- **SQL (SQLite by default, Postgres-compatible)** — conversation transcript (`backend/memory/conversation_store.py`)
-- **FAISS (in-memory, built on startup)** — curriculum RAG index over `backend/curriculum/*.md`
-
-## Prerequisites
-
-Install these before doing anything else:
-
-| Tool | Version | Why |
-|---|---|---|
-| Python | 3.10+ (3.12 used in dev) | Runs the app and all agents |
-| Java | 17+ | Required by Neo4j Community Server |
-| [Ollama](https://ollama.com) | any recent | Runs the LLMs locally (or on a shared host) |
-| Git | any | Clone the repo |
-
-Docker is **not** required — everything here runs as plain local processes.
-
-## 1. Clone and set up a virtual environment
+You need Python 3.11+, [Ollama](https://ollama.com) and Google Chrome. Node.js is only needed to change the gamified dashboard.
 
 ```bash
-git clone <repo-url>
+sudo apt install -y python3-venv          # once
+ollama pull gemma4:e2b                    # the tutor's model (4.6 GB)
+ollama pull nomic-embed-text              # curriculum search (274 MB)
+
+git clone https://github.com/shaurya295/Adaptive-AI-Tutor-with-Misconception-Memory.git
 cd Adaptive-AI-Tutor-with-Misconception-Memory
-
-python -m venv venv
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
-
-pip install -r requirements.txt
+./run.sh setup                            # virtualenv, Python packages, .env
+./run.sh doctor                           # checks everything and says how to fix anything missing
+./run.sh real                             # starts the app
 ```
 
-## 2. Configure environment variables
+Open **http://127.0.0.1:8000** and sign in with an email:
+- **Personal address** (e.g. `you@gmail.com`): opens the student side. Choose 📓 Simple or 🕹️ Gamified.
+- **School address** (e.g. `teacher@school.edu`): opens the teacher dashboard. Which domains count as school is set in `.env`.
 
-```bash
-cp .env.example .env
+Keep the terminal open while you use the app. **Ctrl + C** stops it.
+
+No Ollama? Run `TUTOR_LLM=fake ./run.sh real` to try everything with canned tutor replies.
+
+### All commands
+
+| Command | Does |
+|---|---|
+| `./run.sh setup [--dev]` | Creates `.venv`, installs packages (`--dev` adds the test tools), copies `.env.example` to `.env` |
+| `./run.sh real [--port 8010]` | Starts the app |
+| `./run.sh doctor [--dev]` | Checks Python, packages, Ollama, models, memory and port, and prints the fix for anything wrong |
+| `./run.sh test` | Runs the automated tests (no model needed) |
+| `./run.sh board` | Captures every screen of the app next to the original UI design and scores the difference (start the app first; needs `--dev` setup) |
+| `./run.sh bench <model>` | Measures speed, memory and judging accuracy of a model on this machine |
+
+Changing the gamified dashboard: `cd frontend_src/gamified && npm install && npm run dev`. It rebuilds into `frontend_web/gamified/` on every save, and the built files are committed, so Node isn't needed just to run the app.
+
+## How it works
+
+```
+Browser ── Mentora (frontend_web/simple)    ┐
+        └─ PixelTutor (frontend_web/gamified)┴─▶ FastAPI (backend/api) ─▶ SQLite (backend/data)
+                                                    │
+                     chat turn ─▶ LangGraph agents ─┤─▶ Ollama (gemma4:e2b)
+                     quiz / game answer ─▶ answer key + misconception tags (no model)
 ```
 
-`.env` is git-ignored on purpose — every teammate's Ollama/Neo4j/DB setup is
-local to their own machine. Open `.env` and fill in the sections below as you
-set each piece up.
+**A tutoring turn** (`backend/agents/orchestrator.py`):
+1. **Evaluator:** checks a bare answer (`3/4`, `0.75`, `x = 4`) against the answer key, with no model call. Anything else gets one short model call that returns the verdict and the diagnosis together. It also flags replies typed faster than a person can write.
+2. **Diagnostic:** decides careless vs. misunderstanding vs. missing prerequisite. For number answers this is decided in code, because small models call almost everything "careless". It then picks the next step on the hint ladder by rule.
+3. **Tutor Planner:** writes the hint (one model call), grounded in the curriculum. An answer-leak guard checks it against the key: a leaking hint is rewritten once, then swapped for a hand-written one.
+4. **Escalation:** after repeated misses, distress or a cheating flag, it tells the teacher, with a summary built from the turn's facts.
+5. **Memory update:** adjusts mastery, the miss streak, weak prerequisites, the spaced-review date and the turn log.
 
-## 3. Set up Ollama (LLM backend)
+| Part | Where |
+|---|---|
+| API (sign-in, tutoring, quizzes, teacher views) | `backend/api/server.py`, `backend/api/auth.py` |
+| Game API (lessons, answers, hints, HUD, leaderboard) | `backend/api/game_routes.py`, rules in `backend/game.py` |
+| Agents | `backend/agents/` |
+| The one connection to the model | `backend/llm.py` |
+| Answer matching (fractions, decimals, percentages, units) | `backend/grading.py` |
+| Memory: mastery, sessions, turns, quizzes, game | `backend/memory/` (SQLite via SQLAlchemy) |
+| Content: questions, lessons, 26 misconceptions, prerequisite graph | `backend/content/` |
+| Curriculum notes for hints (searched with Chroma) | `backend/curriculum/`, `backend/rag/` |
+| Six evaluation metrics | `backend/evals/metrics.py` |
+| Simple dashboard | `frontend_web/simple/index.html` |
+| Gamified dashboard source (React 19 + Vite) | `frontend_src/gamified/` |
 
-**Option A — run it locally:**
-```bash
-ollama serve
-ollama pull llama3.2          # or any chat-capable model you prefer
-ollama pull nomic-embed-text  # required for the RAG curriculum retriever
-```
-Leave `.env`'s `OLLAMA_BASE_URL=http://localhost:11434` as-is, and set every
-`*_MODEL` variable to whatever chat model you pulled (e.g. `llama3.2`).
+**Speed on a 2-core laptop with `gemma4:e2b`:**
 
-**Option B — use a shared host** (e.g. a team GPU box): the server there
-**must** be started with `OLLAMA_HOST=0.0.0.0:11434` (Ollama binds to
-`127.0.0.1` only by default, which refuses connections from other machines —
-this bit us once already). On that host:
-```bash
-OLLAMA_HOST=0.0.0.0:11434 nohup ollama serve > ~/ollama.log 2>&1 &
-ollama pull <model>
-```
-Then in your local `.env`, set `OLLAMA_BASE_URL=http://<that-host-ip>:11434`.
+| Action | Time |
+|---|---|
+| Wrong answer in chat | ~10–15 s |
+| Explanation | ~10–20 s |
+| Quiz and game answers | instant |
 
-**Verify it's reachable** before moving on:
-```bash
-curl http://<OLLAMA_BASE_URL host:port>/api/tags
-```
-You should get back a JSON list of models, not a connection error.
+Benchmark another model with `./run.sh bench <model>`.
 
-## 4. Set up Neo4j (student mastery / misconception graph)
+## Testing
 
-No Docker needed — Community Server runs directly on Java.
+`./run.sh test` runs about 70 tests. They cover:
+- answer matching, the hint ladder and the leak guard;
+- the game rules, the six metrics and the content packages;
+- every API route, including access control (students can only see their own data; teacher-only routes).
 
-1. Download Community Server from the [Neo4j Deployment Center](https://neo4j.com/deployment-center/) (pick "Community", the ZIP/TAR package — not the `.exe`/Desktop installer).
-2. Extract it anywhere, e.g. `~/neo4j/` or `C:\neo4j\`.
-3. Set the initial password **before** first start:
-   ```bash
-   ./bin/neo4j-admin dbms set-initial-password <your-password>
-   ```
-4. Start it:
-   ```bash
-   ./bin/neo4j console
-   ```
-   Leave this running in its own terminal/background process. You should see
-   `Bolt enabled on localhost:7687` and `Started.` in the log.
-5. In `.env`, set `NEO4J_URI=bolt://localhost:7687`, `NEO4J_USER=neo4j`, and
-   `NEO4J_PASSWORD=<the password you set>`.
-6. Seed the curriculum prerequisite graph (one-time, safe to re-run):
-   ```bash
-   python -m backend.memory.misconception_graph --seed
-   ```
+A stand-in model is used, so no Ollama is needed. `backend/tools/eval_errors.py` checks the real model's error labelling against a hand-labelled set.
 
-You can browse the graph visually at http://localhost:7474 (login with the
-same user/password).
+## The design reference and deviations
 
-**If Neo4j isn't running or reachable, the app still works** — every
-Neo4j-backed function degrades gracefully (logs a warning, falls back to an
-empty/no-op result) rather than crashing. You just won't get persisted
-mastery tracking or grounded prerequisite names until it's up.
+The interface follows a UI reference made during the hackathon. `./run.sh board` compares every screen against it. Where the app deliberately differs, it's listed with the reason in [`docs/deviations.md`](docs/deviations.md). Examples: bugs in the reference that were fixed, and game mechanics the reference only faked, which are now real.
 
-## 5. Conversation history database
+## More
 
-Nothing to do — defaults to a local SQLite file
-(`backend/data/conversations.db`, created automatically on first run).
+- [`docs/API.md`](docs/API.md): every endpoint
+- [`SECURITY.md`](SECURITY.md): what is protected, and the known limits
+- [`docs/deviations.md`](docs/deviations.md): differences from the UI reference
 
-To use real Postgres instead, just change `DATABASE_URL` in `.env` to a
-`postgresql+psycopg2://user:pass@host:port/dbname` DSN. No code changes
-needed either way.
-
-## 6. Curriculum RAG index
-
-Nothing to do — built automatically in-memory from `backend/curriculum/*.md`
-the first time the Tutor Planner needs it. Requires the `nomic-embed-text`
-model to be pulled on your Ollama instance (see step 3).
-
-## 7. Run the app
-
-```bash
-streamlit run app.py
-```
-
-Open the URL Streamlit prints (typically http://localhost:8501). Use the
-sidebar to pick a topic and toggle "Show tutor internals" to see the
-diagnostic/evaluator output and which path each turn took.
-
-## Verifying your setup works end-to-end
-
-Each backend module has a standalone test block — useful for isolating
-problems without going through the full UI:
-
-```bash
-python -m backend.memory.neo4j_client        # Neo4j connectivity check
-python -m backend.memory.conversation_store  # SQLite round-trip (no external deps)
-python -m backend.memory.misconception_graph # prerequisite graph lookups
-python -m backend.agents.orchestrator        # full multi-scenario run through the graph (needs Ollama)
-```
-
-## Troubleshooting
-
-- **"Connection refused" talking to Ollama**: if it's a remote host, confirm
-  it was started with `OLLAMA_HOST=0.0.0.0:11434` (see step 3, Option B) —
-  `ollama list` working *on that machine* only proves the local CLI works,
-  not that the port is open to your machine. Test with
-  `curl http://<host>:11434/api/tags` from your own machine.
-- **Neo4j warnings in the logs**: expected and harmless if you haven't set
-  it up yet — every read/write degrades to a safe fallback instead of
-  crashing. Follow step 4 to get real persistence.
-- **A model response takes 60+ seconds**: you're likely running a large
-  model on CPU only. Try a smaller model (e.g. `llama3.2` over `mistral`) or
-  point at a GPU-backed Ollama host.
-- **Windows note**: running a file directly as `python backend/agents/x.py`
-  can fail with `ModuleNotFoundError: No module named 'backend'` because the
-  script's own directory gets put on `sys.path` instead of the project root.
-  Use the `python -m backend.agents.x` module form instead (as shown above).
+Earlier versions stored memory in Neo4j and had a Streamlit interface. Both were replaced: memory now lives in SQLite, so nothing else needs installing, and the prerequisite graph is a content file (`backend/content/concepts.json`).
